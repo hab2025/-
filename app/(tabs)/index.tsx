@@ -60,13 +60,13 @@ export default function ChatScreen() {
   const { 
     currentSession,
     sessions,
-    addMessage,
     startNewSession,
     selectSession,
     deleteSession,
-    updateMessageContent,
-    updateMessageThinkingStatus,
-    updateMessageAgentType,
+    sendMessage,
+    sendImageMessage,
+    sendDocumentMessage,
+    sendAudioMessage,
   } = useChat();
   const { 
     activeAgents,
@@ -75,7 +75,6 @@ export default function ChatScreen() {
     getAllAgents,
     isProcessing,
     currentTask,
-    processWithAgent,
   } = useAgent();
 
   const scrollViewRef = useRef<ScrollView>(null);
@@ -88,18 +87,6 @@ export default function ChatScreen() {
       scrollViewRef.current.scrollToEnd({ animated: true });
     }
   }, [currentSession?.messages]);
-
-  const {
-    currentSession,
-    sessions,
-    startNewSession,
-    selectSession,
-    deleteSession,
-    sendMessage,
-    sendImageMessage,
-    sendDocumentMessage,
-    sendAudioMessage,
-  } = useChat();
 
   const handleSendMessage = async () => {
     if (inputText.trim() === '') return;
@@ -121,11 +108,11 @@ export default function ChatScreen() {
 
   const handleDeleteSession = (sessionId: string) => {
     Alert.alert(
-      'حذف المحادثة',
-      'هل أنت متأكد أنك تريد حذف هذه المحادثة؟',
+      t('chat.deleteSession.title', 'Delete Conversation'),
+      t('chat.deleteSession.message', 'Are you sure you want to delete this conversation?'),
       [
-        { text: 'إلغاء', style: 'cancel' },
-        { text: 'حذف', onPress: () => deleteSession(sessionId), style: 'destructive' },
+        { text: t('chat.deleteSession.cancel', 'Cancel'), style: 'cancel' },
+        { text: t('chat.deleteSession.delete', 'Delete'), onPress: () => deleteSession(sessionId), style: 'destructive' },
       ]
     );
   };
@@ -133,7 +120,7 @@ export default function ChatScreen() {
   const handlePickImage = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') {
-      Alert.alert('Permission required', 'Please grant media library permissions to pick an image.');
+      Alert.alert(t('chat.permissions.mediaLibrary.title', 'Permission required'), t('chat.permissions.mediaLibrary.message', 'Please grant media library permissions to pick an image.'));
       return;
     }
 
@@ -172,7 +159,7 @@ export default function ChatScreen() {
         }
       } catch (error) {
         console.error('Error reading document:', error);
-        Alert.alert('Error', 'Could not read the selected document.');
+        Alert.alert(t('chat.errors.readDocument.title', 'Error'), t('chat.errors.readDocument.message', 'Could not read the selected document.'));
       }
     }
   };
@@ -181,7 +168,7 @@ export default function ChatScreen() {
     try {
       const { status } = await Audio.requestPermissionsAsync();
       if (status !== 'granted') {
-        Alert.alert('Permission required', 'Please grant microphone permissions to record audio.');
+        Alert.alert(t('chat.permissions.microphone.title', 'Permission required'), t('chat.permissions.microphone.message', 'Please grant microphone permissions to record audio.'));
         return;
       }
 
@@ -200,7 +187,7 @@ export default function ChatScreen() {
       setIsRecording(true);
     } catch (err) {
       console.error('Failed to start recording', err);
-      Alert.alert('Recording Error', 'Failed to start recording. Please try again.');
+      Alert.alert(t('chat.errors.startRecording.title', 'Recording Error'), t('chat.errors.startRecording.message', 'Failed to start recording. Please try again.'));
     }
   };
 
@@ -212,7 +199,7 @@ export default function ChatScreen() {
       await recording.stopAndUnloadAsync();
       const uri = recording.getURI();
       if (!uri) {
-        Alert.alert('Recording Error', 'Failed to get recording URI.');
+        Alert.alert(t('chat.errors.getRecordingUri.title', 'Recording Error'), t('chat.errors.getRecordingUri.message', 'Failed to get recording URI.'));
         return;
       }
 
@@ -220,7 +207,7 @@ export default function ChatScreen() {
       sendAudioMessage(uri, base64Audio);
     } catch (err) {
       console.error('Failed to stop recording', err);
-      Alert.alert('Recording Error', 'Failed to stop recording. Please try again.');
+      Alert.alert(t('chat.errors.stopRecording.title', 'Recording Error'), t('chat.errors.stopRecording.message', 'Failed to stop recording. Please try again.'));
     } finally {
       setRecording(null);
     }
