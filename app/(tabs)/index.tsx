@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useMemo } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   View,
   Text,
@@ -11,7 +11,7 @@ import {
   Alert,
   TextInput,
 } from 'react-native';
-import { Send, Plus, Mic, Image as ImageIcon, FileText, Search, Code, Brain, MessageSquare, Trash2, XCircle } from 'lucide-react-native';
+import { Send, Plus, Mic, Brain, MessageSquare } from 'lucide-react-native';
 import { useAuth } from '@/hooks/auth-store';
 import { useChat } from '@/hooks/chat-store';
 import { useAgent } from '@/hooks/agent-store';
@@ -19,7 +19,7 @@ import { useLanguage } from '@/hooks/language-store';
 import MessageBubble from '@/components/MessageBubble';
 import ChatSessionItem from '@/components/ChatSessionItem';
 import colors from '@/constants/colors';
-import { AgentType, ContentType, Message, ChatSession } from '@/types/chat';
+import { AgentType, ChatSession } from '@/types/chat';
 import * as ImagePicker from 'expo-image-picker';
 import * as DocumentPicker from 'expo-document-picker';
 import * as FileSystem from 'expo-file-system';
@@ -89,46 +89,23 @@ export default function ChatScreen() {
     }
   }, [currentSession?.messages]);
 
+  const {
+    currentSession,
+    sessions,
+    startNewSession,
+    selectSession,
+    deleteSession,
+    sendMessage,
+    sendImageMessage,
+    sendDocumentMessage,
+    sendAudioMessage,
+  } = useChat();
+
   const handleSendMessage = async () => {
     if (inputText.trim() === '') return;
-
-    const userMessage: Message = {
-      id: Date.now().toString(),
-      role: 'user',
-      content: [{ type: 'text', content: inputText.trim() }],
-      timestamp: Date.now(),
-    };
-
-    addMessage(userMessage);
+    sendMessage(inputText.trim());
     setInputText('');
     inputRef.current?.blur();
-
-    // Simulate AI response
-    const aiMessageId = Date.now().toString() + '-ai';
-    addMessage({
-      id: aiMessageId,
-      role: 'assistant',
-      content: [{ type: 'text', content: '' }],
-      timestamp: Date.now(),
-      isThinking: true,
-    });
-
-    try {
-      const result = await processWithAgent('general', userMessage.content[0].content);
-      if (result.success) {
-        updateMessageContent(aiMessageId, result.data.response);
-        if (result.data.searchResults) {
-          updateMessageContent(aiMessageId, result.data.response, 'web_search', result.data.searchResults);
-        }
-      } else {
-        updateMessageContent(aiMessageId, result.error || 'An error occurred.');
-      }
-    } catch (error) {
-      console.error('Error processing message:', error);
-      updateMessageContent(aiMessageId, 'An unexpected error occurred.');
-    } finally {
-      updateMessageThinkingStatus(aiMessageId, false);
-    }
   };
 
   const handleNewChat = () => {
@@ -171,39 +148,8 @@ export default function ChatScreen() {
     if (!result.canceled && result.assets && result.assets.length > 0) {
       const imageUri = result.assets[0].uri;
       const base64Image = result.assets[0].base64;
-
-      const userMessage: Message = {
-        id: Date.now().toString(),
-        role: 'user',
-        content: [
-          { type: 'text', content: 'صورة مرفقة:' },
-          { type: 'image', content: `data:image/jpeg;base64,${base64Image}`, mimeType: 'image/jpeg' },
-        ],
-        timestamp: Date.now(),
-      };
-      addMessage(userMessage);
-
-      const aiMessageId = Date.now().toString() + '-ai';
-      addMessage({
-        id: aiMessageId,
-        role: 'assistant',
-        content: [{ type: 'text', content: '' }],
-        timestamp: Date.now(),
-        isThinking: true,
-      });
-
-      try {
-        const result = await processWithAgent('image_analyst', imageUri, { type: 'image', base64: base64Image });
-        if (result.success) {
-          updateMessageContent(aiMessageId, result.data.response);
-        } else {
-          updateMessageContent(aiMessageId, result.error || 'An error occurred during image analysis.');
-        }
-      } catch (error) {
-        console.error('Error analyzing image:', error);
-        updateMessageContent(aiMessageId, 'An unexpected error occurred during image analysis.');
-      } finally {
-        updateMessageThinkingStatus(aiMessageId, false);
+      if (base64Image) {
+        sendImageMessage(imageUri, base64Image);
       }
     }
   };
@@ -221,38 +167,12 @@ export default function ChatScreen() {
 
       try {
         const fileContent = await FileSystem.readAsStringAsync(docUri, { encoding: FileSystem.EncodingType.Base64 });
-
-        const userMessage: Message = {
-          id: Date.now().toString(),
-          role: 'user',
-          content: [
-            { type: 'text', content: `ملف مرفق: ${docName}` },
-            { type: 'file', content: `data:${docMimeType};base64,${fileContent}`, mimeType: docMimeType, metadata: { fileName: docName, fileType: docMimeType } },
-          ],
-          timestamp: Date.now(),
-        };
-        addMessage(userMessage);
-
-        const aiMessageId = Date.now().toString() + '-ai';
-        addMessage({
-          id: aiMessageId,
-          role: 'assistant',
-          content: [{ type: 'text', content: '' }],
-          timestamp: Date.now(),
-          isThinking: true,
-        });
-
-        const result = await processWithAgent('document_analyzer', docName, { type: 'file', base64: fileContent, mimeType: docMimeType });
-        if (result.success) {
-          updateMessageContent(aiMessageId, result.data.response);
-        } else {
-          updateMessageContent(aiMessageId, result.error || 'An error occurred during document analysis.');
+        if (docMimeType) {
+          sendDocumentMessage(docUri, docName, docMimeType, fileContent);
         }
       } catch (error) {
-        console.error('Error analyzing document:', error);
-        updateMessageContent(aiMessageId, 'An unexpected error occurred during document analysis.');
-      } finally {
-        updateMessageThinkingStatus(aiMessageId, false);
+        console.error('Error reading document:', error);
+        Alert.alert('Error', 'Could not read the selected document.');
       }
     }
   };
@@ -297,40 +217,7 @@ export default function ChatScreen() {
       }
 
       const base64Audio = await FileSystem.readAsStringAsync(uri, { encoding: FileSystem.EncodingType.Base64 });
-
-      const userMessage: Message = {
-        id: Date.now().toString(),
-        role: 'user',
-        content: [
-          { type: 'text', content: 'رسالة صوتية مرفقة:' },
-          { type: 'audio', content: `data:audio/m4a;base64,${base64Audio}`, mimeType: 'audio/m4a' },
-        ],
-        timestamp: Date.now(),
-      };
-      addMessage(userMessage);
-
-      const aiMessageId = Date.now().toString() + '-ai';
-      addMessage({
-        id: aiMessageId,
-        role: 'assistant',
-        content: [{ type: 'text', content: '' }],
-        timestamp: Date.now(),
-        isThinking: true,
-      });
-
-      try {
-        const result = await processWithAgent('audio_analyst', uri, { type: 'audio', base64: base64Audio });
-        if (result.success) {
-          updateMessageContent(aiMessageId, result.data.response);
-        } else {
-          updateMessageContent(aiMessageId, result.error || 'An error occurred during audio analysis.');
-        }
-      } catch (error) {
-        console.error('Error analyzing audio:', error);
-        updateMessageContent(aiMessageId, 'An unexpected error occurred during audio analysis.');
-      } finally {
-        updateMessageThinkingStatus(aiMessageId, false);
-      }
+      sendAudioMessage(uri, base64Audio);
     } catch (err) {
       console.error('Failed to stop recording', err);
       Alert.alert('Recording Error', 'Failed to stop recording. Please try again.');
