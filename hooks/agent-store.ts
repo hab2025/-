@@ -258,34 +258,56 @@ export const [AgentContext, useAgent] = createContextHook(() => {
     try {
       setCurrentTask('🔍 البحث المباشر...');
       
-      const response = await fetch('https://toolkit.rork.com/text/llm/', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          messages: [
-            {
-              role: 'system',
-              content: 'أنت وكيل بحث مباشر مع وصول للمعلومات الحية. قدم أحدث المعلومات المتاحة.'
-            },
-            {
-              role: 'user',
-              content: `ابحث عن معلومات حية حول: ${query}`
-            }
-          ]
-        })
+      // Import the real-time search API
+      const { realTimeSearchAPI } = await import('@/services/api/realTimeSearchAPI');
+      
+      // Perform real-time search
+      const searchResults = await realTimeSearchAPI.smartSearch(query, 'ar');
+      
+      if (searchResults.length === 0) {
+        return {
+          success: false,
+          error: 'لم يتم العثور على نتائج حديثة لهذا البحث'
+        };
+      }
+      
+      // Format the results into a readable response
+      let response = `🔍 **نتائج البحث المباشر لـ "${query}":**\n\n`;
+      
+      searchResults.slice(0, 5).forEach((result, index) => {
+        response += `**${index + 1}. ${result.title}**\n`;
+        response += `${result.snippet}\n`;
+        response += `📅 ${new Date(result.timestamp || '').toLocaleDateString('ar-SA')}\n`;
+        response += `🔗 المصدر: ${result.source}\n\n`;
       });
-
-      const data = await response.json();
+      
+      if (searchResults.length > 5) {
+        response += `... وهناك ${searchResults.length - 5} نتائج أخرى\n`;
+      }
       
       return {
         success: true,
-        data: { response: data.completion },
-        metadata: { searchQuery: query, searchType: 'live' }
+        data: { 
+          response: response,
+          searchResults: searchResults.map(result => ({
+            title: result.title,
+            url: result.url,
+            snippet: result.snippet,
+            timestamp: result.timestamp
+          }))
+        },
+        metadata: { 
+          searchQuery: query, 
+          searchType: 'live',
+          resultCount: searchResults.length,
+          sources: [...new Set(searchResults.map(r => r.source))]
+        }
       };
     } catch (error) {
+      console.error('Live search error:', error);
       return {
         success: false,
-        error: 'فشل في البحث المباشر'
+        error: 'فشل في البحث المباشر - تحقق من الاتصال بالإنترنت'
       };
     }
   };
