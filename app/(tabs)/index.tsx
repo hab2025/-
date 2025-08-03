@@ -30,15 +30,15 @@ import { BlurView } from 'expo-blur';
 const RECORDING_OPTIONS_PRESET_HIGH_QUALITY = {
   android: {
     extension: '.m4a',
-    outputFormat: Audio.RecordingOptions.AndroidOutputFormat.MPEG_4,
-    audioEncoder: Audio.RecordingOptions.AndroidAudioEncoder.AAC,
+    outputFormat: Audio.AndroidOutputFormat.MPEG_4,
+    audioEncoder: Audio.AndroidAudioEncoder.AAC,
     sampleRate: 44100,
     numberOfChannels: 2,
     bitRate: 128000,
   },
   ios: {
     extension: '.m4a',
-    audioQuality: Audio.RecordingQuality.High,
+    audioQuality: Audio.IOSAudioQuality.HIGH,
     sampleRate: 44100,
     numberOfChannels: 2,
     bitRate: 128000,
