@@ -72,8 +72,6 @@ export default function ChatScreen() {
     sendImageMessage,
     sendDocumentMessage,
     sendAudioMessage,
-    plan,
-    thoughts,
   } = useChat();
   const { 
     activeAgents,
@@ -95,7 +93,6 @@ export default function ChatScreen() {
     }
   }, [currentSession?.messages]);
 
-
   useEffect(() => {
     const keyboardDidShowListener = Keyboard.addListener(
       'keyboardDidShow',
@@ -107,7 +104,6 @@ export default function ChatScreen() {
       keyboardDidShowListener.remove();
     };
   }, []);
-
 
   const handleSendMessage = async () => {
     if (inputText.trim() === '') return;
