@@ -192,9 +192,10 @@ export const [AgentContext, useAgent] = createContextHook(() => {
       }
     } catch (error) {
       console.error('Agent processing error:', error);
+      const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Unknown error'
+        error: `حدث خطأ أثناء معالجة طلبك: ${errorMessage}`
       };
     } finally {
       setIsProcessing(false);
@@ -224,7 +225,8 @@ export const [AgentContext, useAgent] = createContextHook(() => {
       });
 
       if (!response.ok) {
-        throw new Error('Web search API failed');
+        const errorBody = await response.text();
+        throw new Error(`فشل طلب البحث في الويب: ${response.status} ${response.statusText} - ${errorBody}`);
       }
 
       const data = await response.json();
@@ -247,9 +249,10 @@ export const [AgentContext, useAgent] = createContextHook(() => {
         metadata: { searchQuery: query, resultCount: searchResults.length }
       };
     } catch (error) {
+      console.error('Web search error:', error);
       return {
         success: false,
-        error: 'فشل في البحث على الإنترنت - تحقق من الاتصال'
+        error: 'فشل في البحث على الإنترنت. يرجى التحقق من اتصالك بالإنترنت والمحاولة مرة أخرى.'
       };
     }
   };
@@ -283,9 +286,10 @@ export const [AgentContext, useAgent] = createContextHook(() => {
         metadata: { searchQuery: query, searchType: 'live' }
       };
     } catch (error) {
+      console.error('Live search error:', error);
       return {
         success: false,
-        error: 'فشل في البحث المباشر'
+        error: 'فشل في البحث المباشر. يرجى التحقق من اتصالك بالإنترنت والمحاولة مرة أخرى.'
       };
     }
   };
@@ -304,7 +308,8 @@ export const [AgentContext, useAgent] = createContextHook(() => {
       });
 
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        const errorBody = await response.text();
+        throw new Error(`فشل طلب إنشاء الصورة: ${response.status} ${response.statusText} - ${errorBody}`);
       }
 
       const data = await response.json();
@@ -320,12 +325,13 @@ export const [AgentContext, useAgent] = createContextHook(() => {
           metadata: { prompt: request.prompt, size: request.size }
         };
       } else {
-        throw new Error('No image data received');
+        throw new Error('لم يتم استلام بيانات الصورة.');
       }
     } catch (error) {
+      console.error('Image generation error:', error);
       return {
         success: false,
-        error: 'فشل في إنشاء الصورة'
+        error: 'فشل في إنشاء الصورة. يرجى المحاولة مرة أخرى.'
       };
     }
   };
@@ -351,6 +357,11 @@ export const [AgentContext, useAgent] = createContextHook(() => {
         })
       });
 
+      if (!response.ok) {
+        const errorBody = await response.text();
+        throw new Error(`فشل طلب تنفيذ الكود: ${response.status} ${response.statusText} - ${errorBody}`);
+      }
+
       const data = await response.json();
       
       return {
@@ -359,9 +370,10 @@ export const [AgentContext, useAgent] = createContextHook(() => {
         metadata: { executionType: 'calculation' }
       };
     } catch (error) {
+      console.error('Code execution error:', error);
       return {
         success: false,
-        error: 'فشل في تنفيذ العملية'
+        error: 'فشل في تنفيذ العملية الحسابية. يرجى المحاولة مرة أخرى.'
       };
     }
   };
@@ -387,6 +399,11 @@ export const [AgentContext, useAgent] = createContextHook(() => {
         })
       });
 
+      if (!response.ok) {
+        const errorBody = await response.text();
+        throw new Error(`فشل طلب تحليل الكود: ${response.status} ${response.statusText} - ${errorBody}`);
+      }
+
       const data = await response.json();
       
       return {
@@ -395,9 +412,10 @@ export const [AgentContext, useAgent] = createContextHook(() => {
         metadata: { analysisType: 'code' }
       };
     } catch (error) {
+      console.error('Code analysis error:', error);
       return {
         success: false,
-        error: 'فشل في تحليل الكود'
+        error: 'فشل في تحليل الكود. يرجى المحاولة مرة أخرى.'
       };
     }
   };
@@ -423,6 +441,11 @@ export const [AgentContext, useAgent] = createContextHook(() => {
         })
       });
 
+      if (!response.ok) {
+        const errorBody = await response.text();
+        throw new Error(`فشل طلب تحليل البيانات: ${response.status} ${response.statusText} - ${errorBody}`);
+      }
+
       const data = await response.json();
       
       return {
@@ -431,9 +454,10 @@ export const [AgentContext, useAgent] = createContextHook(() => {
         metadata: { analysisType: 'data' }
       };
     } catch (error) {
+      console.error('Data analysis error:', error);
       return {
         success: false,
-        error: 'فشل في تحليل البيانات'
+        error: 'فشل في تحليل البيانات. يرجى المحاولة مرة أخرى.'
       };
     }
   };
@@ -459,6 +483,11 @@ export const [AgentContext, useAgent] = createContextHook(() => {
         })
       });
 
+      if (!response.ok) {
+        const errorBody = await response.text();
+        throw new Error(`فشل طلب الترجمة: ${response.status} ${response.statusText} - ${errorBody}`);
+      }
+
       const data = await response.json();
       
       return {
@@ -467,9 +496,10 @@ export const [AgentContext, useAgent] = createContextHook(() => {
         metadata: { serviceType: 'translation' }
       };
     } catch (error) {
+      console.error('Translation error:', error);
       return {
         success: false,
-        error: 'فشل في الترجمة'
+        error: 'فشل في الترجمة. يرجى المحاولة مرة أخرى.'
       };
     }
   };
@@ -495,6 +525,11 @@ export const [AgentContext, useAgent] = createContextHook(() => {
         })
       });
 
+      if (!response.ok) {
+        const errorBody = await response.text();
+        throw new Error(`فشل طلب الكتابة الإبداعية: ${response.status} ${response.statusText} - ${errorBody}`);
+      }
+
       const data = await response.json();
       
       return {
@@ -503,9 +538,10 @@ export const [AgentContext, useAgent] = createContextHook(() => {
         metadata: { contentType: 'creative' }
       };
     } catch (error) {
+      console.error('Creative writing error:', error);
       return {
         success: false,
-        error: 'فشل في الكتابة الإبداعية'
+        error: 'فشل في الكتابة الإبداعية. يرجى المحاولة مرة أخرى.'
       };
     }
   };
@@ -531,6 +567,11 @@ export const [AgentContext, useAgent] = createContextHook(() => {
         })
       });
 
+      if (!response.ok) {
+        const errorBody = await response.text();
+        throw new Error(`فشل طلب التحليل المالي: ${response.status} ${response.statusText} - ${errorBody}`);
+      }
+
       const data = await response.json();
       
       return {
@@ -539,9 +580,10 @@ export const [AgentContext, useAgent] = createContextHook(() => {
         metadata: { analysisType: 'financial' }
       };
     } catch (error) {
+      console.error('Financial analysis error:', error);
       return {
         success: false,
-        error: 'فشل في التحليل المالي'
+        error: 'فشل في التحليل المالي. يرجى المحاولة مرة أخرى.'
       };
     }
   };
@@ -567,6 +609,11 @@ export const [AgentContext, useAgent] = createContextHook(() => {
         })
       });
 
+      if (!response.ok) {
+        const errorBody = await response.text();
+        throw new Error(`فشل طلب تخطيط الرحلة: ${response.status} ${response.statusText} - ${errorBody}`);
+      }
+
       const data = await response.json();
       
       return {
@@ -575,9 +622,10 @@ export const [AgentContext, useAgent] = createContextHook(() => {
         metadata: { serviceType: 'travel_planning' }
       };
     } catch (error) {
+      console.error('Travel planning error:', error);
       return {
         success: false,
-        error: 'فشل في تخطيط الرحلة'
+        error: 'فشل في تخطيط الرحلة. يرجى المحاولة مرة أخرى.'
       };
     }
   };
@@ -603,6 +651,11 @@ export const [AgentContext, useAgent] = createContextHook(() => {
         })
       });
 
+      if (!response.ok) {
+        const errorBody = await response.text();
+        throw new Error(`فشل طلب الاستشارة الصحية: ${response.status} ${response.statusText} - ${errorBody}`);
+      }
+
       const data = await response.json();
       
       return {
@@ -611,9 +664,10 @@ export const [AgentContext, useAgent] = createContextHook(() => {
         metadata: { serviceType: 'health_advice' }
       };
     } catch (error) {
+      console.error('Health advice error:', error);
       return {
         success: false,
-        error: 'فشل في تقديم الاستشارة الصحية'
+        error: 'فشل في تقديم الاستشارة الصحية. يرجى المحاولة مرة أخرى.'
       };
     }
   };
@@ -639,6 +693,11 @@ export const [AgentContext, useAgent] = createContextHook(() => {
         })
       });
 
+      if (!response.ok) {
+        const errorBody = await response.text();
+        throw new Error(`فشل طلب التدريس: ${response.status} ${response.statusText} - ${errorBody}`);
+      }
+
       const data = await response.json();
       
       return {
@@ -647,9 +706,10 @@ export const [AgentContext, useAgent] = createContextHook(() => {
         metadata: { serviceType: 'tutoring' }
       };
     } catch (error) {
+      console.error('Tutoring error:', error);
       return {
         success: false,
-        error: 'فشل في التدريس'
+        error: 'فشل في التدريس. يرجى المحاولة مرة أخرى.'
       };
     }
   };
@@ -675,6 +735,11 @@ export const [AgentContext, useAgent] = createContextHook(() => {
         })
       });
 
+      if (!response.ok) {
+        const errorBody = await response.text();
+        throw new Error(`فشل طلب تحليل المستند: ${response.status} ${response.statusText} - ${errorBody}`);
+      }
+
       const data = await response.json();
       
       return {
@@ -683,9 +748,10 @@ export const [AgentContext, useAgent] = createContextHook(() => {
         metadata: { analysisType: 'document' }
       };
     } catch (error) {
+      console.error('Document analysis error:', error);
       return {
         success: false,
-        error: 'فشل في تحليل المستند'
+        error: 'فشل في تحليل المستند. يرجى المحاولة مرة أخرى.'
       };
     }
   };
@@ -711,6 +777,11 @@ export const [AgentContext, useAgent] = createContextHook(() => {
         })
       });
 
+      if (!response.ok) {
+        const errorBody = await response.text();
+        throw new Error(`فشل طلب تحليل الملف: ${response.status} ${response.statusText} - ${errorBody}`);
+      }
+
       const data = await response.json();
       
       return {
@@ -719,9 +790,10 @@ export const [AgentContext, useAgent] = createContextHook(() => {
         metadata: { analysisType: 'file' }
       };
     } catch (error) {
+      console.error('File analysis error:', error);
       return {
         success: false,
-        error: 'فشل في تحليل الملف'
+        error: 'فشل في تحليل الملف. يرجى المحاولة مرة أخرى.'
       };
     }
   };
@@ -747,6 +819,11 @@ export const [AgentContext, useAgent] = createContextHook(() => {
         })
       });
 
+      if (!response.ok) {
+        const errorBody = await response.text();
+        throw new Error(`فشل طلب المعالجة العامة: ${response.status} ${response.statusText} - ${errorBody}`);
+      }
+
       const data = await response.json();
       
       return {
@@ -755,9 +832,10 @@ export const [AgentContext, useAgent] = createContextHook(() => {
         metadata: { agentType: agent.type }
       };
     } catch (error) {
+      console.error('General query error:', error);
       return {
         success: false,
-        error: 'فشل في معالجة الطلب'
+        error: 'فشل في معالجة الطلب. يرجى المحاولة مرة أخرى.'
       };
     }
   };
