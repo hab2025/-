@@ -30,8 +30,18 @@ export const [AuthContext, useAuth] = createContextHook(() => {
   };
 
   const login = async (username: string, password: string) => {
-    // The hardcoded credentials have been removed for security reasons.
-    // A proper authentication system should be implemented.
+    // For testing purposes, hardcoded admin credentials
+    if (username === 'admin' && password === 'Mo@1234567') {
+      const user: User = {
+        id: '1',
+        username: 'admin',
+        role: 'admin',
+      };
+      
+      await AsyncStorage.setItem('user', JSON.stringify(user));
+      setState({ user, isAuthenticated: true, isLoading: false });
+      return true;
+    }
     return false;
   };
 
