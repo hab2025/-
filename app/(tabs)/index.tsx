@@ -95,6 +95,7 @@ export default function ChatScreen() {
     }
   }, [currentSession?.messages]);
 
+
   useEffect(() => {
     const keyboardDidShowListener = Keyboard.addListener(
       'keyboardDidShow',
@@ -106,6 +107,7 @@ export default function ChatScreen() {
       keyboardDidShowListener.remove();
     };
   }, []);
+
 
   const handleSendMessage = async () => {
     if (inputText.trim() === '') return;
