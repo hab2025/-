@@ -20,6 +20,7 @@ import { useAgent } from '@/hooks/agent-store';
 import { useLanguage } from '@/hooks/language-store';
 import MessageBubble from '@/components/MessageBubble';
 import ChatSessionItem from '@/components/ChatSessionItem';
+import ThoughtProcess from '@/components/ThoughtProcess';
 import colors from '@/constants/colors';
 import { AgentType, ChatSession } from '@/types/chat';
 import * as ImagePicker from 'expo-image-picker';
@@ -56,6 +57,8 @@ export default function ChatScreen() {
   const [recording, setRecording] = useState<Audio.Recording | null>(null);
   const [showAgentPicker, setShowAgentPicker] = useState(false);
   const [showSessionPicker, setShowSessionPicker] = useState(false);
+  const [plan, setPlan] = useState<string[]>([]);
+  const [thoughts, setThoughts] = useState('');
 
   const { user } = useAuth();
   const { t } = useLanguage();
@@ -69,6 +72,8 @@ export default function ChatScreen() {
     sendImageMessage,
     sendDocumentMessage,
     sendAudioMessage,
+    plan,
+    thoughts,
   } = useChat();
   const { 
     activeAgents,
@@ -89,6 +94,8 @@ export default function ChatScreen() {
       scrollViewRef.current.scrollToEnd({ animated: true });
     }
   }, [currentSession?.messages]);
+
+
   useEffect(() => {
     const keyboardDidShowListener = Keyboard.addListener(
       'keyboardDidShow',
@@ -100,6 +107,8 @@ export default function ChatScreen() {
       keyboardDidShowListener.remove();
     };
   }, []);
+
+
   const handleSendMessage = async () => {
     if (inputText.trim() === '') return;
     sendMessage(inputText.trim());
@@ -279,7 +288,7 @@ export default function ChatScreen() {
           ))}
         </ScrollView>
         <TouchableOpacity style={styles.closeButton} onPress={() => setShowSessionPicker(false)}>
-          <Text style={styles.closeButtonText}>إغلاق</Text>
+          <Text style={styles.closeButtonText}>{t('chat.sessionPicker.close', 'Close')}</Text>
         </TouchableOpacity>
       </View>
     </BlurView>
@@ -319,11 +328,12 @@ export default function ChatScreen() {
         {currentSession?.messages.map((message) => (
           <MessageBubble key={message.id} message={message} />
         ))}
-        {isProcessing && currentTask && (
-          <View style={styles.thinkingContainer}>
-            <ActivityIndicator size="small" color={colors.primary} />
-            <Text style={styles.thinkingText}>{t(currentTask.split(',')[0], currentTask.split(',')[0]).replace('{agent}', t(currentTask.split(',')[1], currentTask.split(',')[1]))}</Text>
-          </View>
+        {isProcessing && (
+          <ThoughtProcess
+            plan={plan}
+            currentTool={t(currentTask?.split(',')[0] || '', currentTask?.split(',')[0] || '').replace('{agent}', t(currentTask?.split(',')[1] || '', currentTask?.split(',')[1] || ''))}
+            thoughts={thoughts}
+          />
         )}
       </ScrollView>
 

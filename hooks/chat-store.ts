@@ -8,6 +8,8 @@ export const [ChatContext, useChat] = createContextHook(() => {
   const [sessions, setSessions] = useState<ChatSession[]>([]);
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [plan, setPlan] = useState<string[]>([]);
+  const [thoughts, setThoughts] = useState('');
   const { processWithAgent, selectBestAgent } = useAgent();
 
   useEffect(() => {
@@ -222,6 +224,14 @@ export const [ChatContext, useChat] = createContextHook(() => {
       // Update thinking message with result
       if (result.success) {
         const responseContent: ContentPart[] = [];
+
+        if (result.data?.plan) {
+          setPlan(result.data.plan);
+        }
+
+        if (result.data?.thoughts) {
+          setThoughts(result.data.thoughts);
+        }
 
         // Add main response
         if (result.data?.response) {
@@ -497,6 +507,8 @@ export const [ChatContext, useChat] = createContextHook(() => {
     sendDocumentMessage,
     sendAudioMessage,
     clearAllSessions,
+    plan,
+    thoughts,
   };
 });
 

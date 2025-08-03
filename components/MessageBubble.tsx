@@ -12,6 +12,7 @@ import { useLanguage } from '@/hooks/language-store';
 import { User, Bot, ExternalLink, Play, FileText, Code, Search } from 'lucide-react-native';
 import { Message, ContentPart } from '@/types/chat';
 import colors from '@/constants/colors';
+import CodeBlock from './CodeBlock';
 
 interface MessageBubbleProps {
   message: Message;
@@ -106,21 +107,11 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
 
       case 'code':
         return (
-          <View key={index} style={styles.codeContainer}>
-            <View style={styles.codeHeader}>
-              <Code size={16} color={colors.primary} />
-              <Text style={styles.codeLanguage}>
-                {part.metadata?.codeLanguage || 'Code'}
-              </Text>
-            </View>
-            <Text style={styles.codeContent}>{part.content}</Text>
-            {part.metadata?.codeOutput && (
-              <View style={styles.codeOutput}>
-                <Text style={styles.codeOutputLabel}>{t('chat.codeOutput', 'Output:')}</Text>
-                <Text style={styles.codeOutputText}>{part.metadata.codeOutput}</Text>
-              </View>
-            )}
-          </View>
+          <CodeBlock
+            key={index}
+            code={part.content}
+            language={part.metadata?.codeLanguage}
+          />
         );
 
       case 'generated_image':
