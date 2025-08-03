@@ -7,6 +7,7 @@ import { AuthContext } from "@/hooks/auth-store";
 import { ChatContext } from "@/hooks/chat-store";
 import { LanguageContext } from "@/hooks/language-store";
 import { AgentContext } from "@/hooks/agent-store";
+import { ThemeProvider } from "@/hooks/useTheme";
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
@@ -31,17 +32,19 @@ export default function RootLayout() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <LanguageContext>
-        <AuthContext>
-          <AgentContext>
-            <ChatContext>
-              <GestureHandlerRootView style={{ flex: 1 }}>
-                <RootLayoutNav />
-              </GestureHandlerRootView>
-            </ChatContext>
-          </AgentContext>
-        </AuthContext>
-      </LanguageContext>
+      <ThemeProvider>
+        <LanguageContext>
+          <AuthContext>
+            <AgentContext>
+              <ChatContext>
+                <GestureHandlerRootView style={{ flex: 1 }}>
+                  <RootLayoutNav />
+                </GestureHandlerRootView>
+              </ChatContext>
+            </AgentContext>
+          </AuthContext>
+        </LanguageContext>
+      </ThemeProvider>
     </QueryClientProvider>
   );
 }
