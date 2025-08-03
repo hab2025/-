@@ -111,11 +111,6 @@ export default function LoginScreen() {
             </Text>
           </TouchableOpacity>
 
-          <View style={styles.hint}>
-            <Text style={styles.hintText}>
-              Admin: admin / Mo1234567
-            </Text>
-          </View>
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
@@ -177,6 +172,5 @@ const styles = StyleSheet.create({
     color: colors.placeholder,
     fontSize: 12,
   },
-});
 });
 
