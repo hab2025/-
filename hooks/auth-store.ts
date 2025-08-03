@@ -30,8 +30,8 @@ export const [AuthContext, useAuth] = createContextHook(() => {
   };
 
   const login = async (username: string, password: string) => {
-    // For demo purposes, hardcoded admin credentials
-    if (username === 'admin' && password === 'Mo1234567') {
+    // For testing purposes, hardcoded admin credentials
+    if (username === 'admin' && password === 'Mo@1234567') {
       const user: User = {
         id: '1',
         username: 'admin',

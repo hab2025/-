@@ -8,6 +8,8 @@ export const [ChatContext, useChat] = createContextHook(() => {
   const [sessions, setSessions] = useState<ChatSession[]>([]);
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [plan, setPlan] = useState<string[]>([]);
+  const [thoughts, setThoughts] = useState('');
   const { processWithAgent, selectBestAgent } = useAgent();
 
   useEffect(() => {
@@ -87,37 +89,87 @@ export const [ChatContext, useChat] = createContextHook(() => {
     await saveSessions(updatedSessions);
   };
 
-  const addMessage = async (sessionId: string, message: Message) => {
-    const updatedSessions = sessions.map(session =>
-      session.id === sessionId
+  const addMessage = async (message: Message) => {
+    const session = getCurrentSession();
+    if (!session) return;
+
+    const updatedSessions = sessions.map(s =>
+      s.id === session.id
         ? {
-            ...session,
-            messages: [...session.messages, message],
+            ...s,
+            messages: [...s.messages, message],
             updatedAt: Date.now(),
           }
-        : session
+        : s
     );
+    setSessions(updatedSessions);
     await saveSessions(updatedSessions);
   };
 
-  const updateMessage = async (sessionId: string, messageId: string, updates: Partial<Message>) => {
-    const updatedSessions = sessions.map(session =>
-      session.id === sessionId
+  const updateMessage = async (messageId: string, updates: Partial<Message>) => {
+    const session = getCurrentSession();
+    if (!session) return;
+
+    const updatedSessions = sessions.map(s =>
+      s.id === session.id
         ? {
-            ...session,
-            messages: session.messages.map(msg =>
+            ...s,
+            messages: s.messages.map(msg =>
               msg.id === messageId ? { ...msg, ...updates } : msg
             ),
             updatedAt: Date.now(),
           }
-        : session
+        : s
     );
     await saveSessions(updatedSessions);
   };
 
+  const updateMessageContent = async (messageId: string, newContent: string, contentType?: ContentPart['type'], metadata?: any) => {
+    const session = getCurrentSession();
+    if (!session) return;
+
+    const updatedSessions = sessions.map(s =>
+      s.id === session.id
+        ? {
+            ...s,
+            messages: s.messages.map(msg => {
+              if (msg.id === messageId) {
+                const contentPart: ContentPart = {
+                  type: contentType || 'text',
+                  content: newContent,
+                  metadata: metadata
+                };
+                return { ...msg, content: [contentPart] };
+              }
+              return msg;
+            }),
+            updatedAt: Date.now(),
+          }
+        : s
+    );
+    await saveSessions(updatedSessions);
+  };
+
+  const updateMessageThinkingStatus = async (messageId: string, isThinking: boolean) => {
+    await updateMessage(messageId, { isThinking });
+  };
+
+  const updateMessageAgentType = async (messageId: string, agentType: AgentType) => {
+    await updateMessage(messageId, { agentType });
+  };
+
+  const startNewSession = async () => {
+    await createNewSession();
+  };
+
+  const selectSession = (sessionId: string) => {
+    setCurrentSessionId(sessionId);
+  };
+
   const sendMessage = async (content: string, attachments?: any[]) => {
-    if (!currentSessionId) {
-      await createNewSession();
+    let sessionId = currentSessionId;
+    if (!sessionId) {
+      sessionId = await createNewSession();
     }
 
     const session = getCurrentSession();
@@ -142,7 +194,7 @@ export const [ChatContext, useChat] = createContextHook(() => {
       });
     }
 
-    await addMessage(session.id, userMessage);
+    await addMessage(userMessage);
 
     // Auto-generate title for new sessions
     if (session.messages.length === 0) {
@@ -159,7 +211,7 @@ export const [ChatContext, useChat] = createContextHook(() => {
       isThinking: true,
     };
 
-    await addMessage(session.id, thinkingMessage);
+    await addMessage(thinkingMessage);
 
     try {
       // Select best agent and process
@@ -172,6 +224,14 @@ export const [ChatContext, useChat] = createContextHook(() => {
       // Update thinking message with result
       if (result.success) {
         const responseContent: ContentPart[] = [];
+
+        if (result.data?.plan) {
+          setPlan(result.data.plan);
+        }
+
+        if (result.data?.thoughts) {
+          setThoughts(result.data.thoughts);
+        }
 
         // Add main response
         if (result.data?.response) {
@@ -215,20 +275,20 @@ export const [ChatContext, useChat] = createContextHook(() => {
           });
         }
 
-        await updateMessage(session.id, thinkingMessage.id, {
+        await updateMessage(thinkingMessage.id, {
           content: responseContent.length > 0 ? responseContent : [{ type: 'text', content: result.data?.response || 'تم المعالجة بنجاح' }],
           agentType: bestAgent,
           isThinking: false,
         });
       } else {
-        await updateMessage(session.id, thinkingMessage.id, {
+        await updateMessage(thinkingMessage.id, {
           content: [{ type: 'text', content: result.error || 'حدث خطأ في المعالجة' }],
           isThinking: false,
         });
       }
     } catch (error) {
       console.error('Error processing message:', error);
-      await updateMessage(session.id, thinkingMessage.id, {
+      await updateMessage(thinkingMessage.id, {
         content: [{ type: 'text', content: 'عذراً، حدث خطأ في معالجة رسالتك. يرجى المحاولة مرة أخرى.' }],
         isThinking: false,
       });
@@ -236,8 +296,9 @@ export const [ChatContext, useChat] = createContextHook(() => {
   };
 
   const sendImageMessage = async (imageUri: string, base64: string, description?: string) => {
-    if (!currentSessionId) {
-      await createNewSession();
+    let sessionId = currentSessionId;
+    if (!sessionId) {
+      sessionId = await createNewSession();
     }
 
     const session = getCurrentSession();
@@ -258,7 +319,7 @@ export const [ChatContext, useChat] = createContextHook(() => {
       timestamp: Date.now(),
     };
 
-    await addMessage(session.id, userMessage);
+    await addMessage(userMessage);
 
     // Process image with appropriate agent
     const thinkingMessage: Message = {
@@ -269,7 +330,7 @@ export const [ChatContext, useChat] = createContextHook(() => {
       isThinking: true,
     };
 
-    await addMessage(session.id, thinkingMessage);
+    await addMessage(thinkingMessage);
 
     try {
       const result = await processWithAgent('document_analyzer', 'تحليل الصورة المرفقة', {
@@ -277,7 +338,7 @@ export const [ChatContext, useChat] = createContextHook(() => {
         sessionId: session.id,
       });
 
-      await updateMessage(session.id, thinkingMessage.id, {
+      await updateMessage(thinkingMessage.id, {
         content: [
           {
             type: 'analysis',
@@ -291,16 +352,17 @@ export const [ChatContext, useChat] = createContextHook(() => {
         isThinking: false,
       });
     } catch (error) {
-      await updateMessage(session.id, thinkingMessage.id, {
+      await updateMessage(thinkingMessage.id, {
         content: [{ type: 'text', content: 'عذراً، فشل في تحليل الصورة' }],
         isThinking: false,
       });
     }
   };
 
-  const sendDocumentMessage = async (documentUri: string, fileName: string, mimeType: string) => {
-    if (!currentSessionId) {
-      await createNewSession();
+  const sendDocumentMessage = async (documentUri: string, fileName: string, mimeType: string, base64: string) => {
+    let sessionId = currentSessionId;
+    if (!sessionId) {
+      sessionId = await createNewSession();
     }
 
     const session = getCurrentSession();
@@ -322,7 +384,7 @@ export const [ChatContext, useChat] = createContextHook(() => {
       timestamp: Date.now(),
     };
 
-    await addMessage(session.id, userMessage);
+    await addMessage(userMessage);
 
     // Process document
     const thinkingMessage: Message = {
@@ -333,17 +395,18 @@ export const [ChatContext, useChat] = createContextHook(() => {
       isThinking: true,
     };
 
-    await addMessage(session.id, thinkingMessage);
+    await addMessage(thinkingMessage);
 
     try {
       const result = await processWithAgent('file_analyzer', `تحليل الملف: ${fileName}`, {
         documentUri,
         fileName,
         mimeType,
+        base64,
         sessionId: session.id,
       });
 
-      await updateMessage(session.id, thinkingMessage.id, {
+      await updateMessage(thinkingMessage.id, {
         content: [
           {
             type: 'analysis',
@@ -358,7 +421,7 @@ export const [ChatContext, useChat] = createContextHook(() => {
         isThinking: false,
       });
     } catch (error) {
-      await updateMessage(session.id, thinkingMessage.id, {
+      await updateMessage(thinkingMessage.id, {
         content: [{ type: 'text', content: 'عذراً، فشل في تحليل الملف' }],
         isThinking: false,
       });
@@ -366,8 +429,9 @@ export const [ChatContext, useChat] = createContextHook(() => {
   };
 
   const sendAudioMessage = async (audioUri: string, base64: string) => {
-    if (!currentSessionId) {
-      await createNewSession();
+    let sessionId = currentSessionId;
+    if (!sessionId) {
+      sessionId = await createNewSession();
     }
 
     const session = getCurrentSession();
@@ -388,7 +452,7 @@ export const [ChatContext, useChat] = createContextHook(() => {
       timestamp: Date.now(),
     };
 
-    await addMessage(session.id, userMessage);
+    await addMessage(userMessage);
 
     // Process audio (transcription)
     const thinkingMessage: Message = {
@@ -399,18 +463,18 @@ export const [ChatContext, useChat] = createContextHook(() => {
       isThinking: true,
     };
 
-    await addMessage(session.id, thinkingMessage);
+    await addMessage(thinkingMessage);
 
     try {
       // For now, simulate audio transcription
       const transcriptionResult = 'عذراً، خدمة تحويل الصوت إلى نص غير متاحة حالياً. يرجى كتابة رسالتك نصياً.';
       
-      await updateMessage(session.id, thinkingMessage.id, {
+      await updateMessage(thinkingMessage.id, {
         content: [{ type: 'text', content: transcriptionResult }],
         isThinking: false,
       });
     } catch (error) {
-      await updateMessage(session.id, thinkingMessage.id, {
+      await updateMessage(thinkingMessage.id, {
         content: [{ type: 'text', content: 'عذراً، فشل في معالجة الرسالة الصوتية' }],
         isThinking: false,
       });
@@ -423,20 +487,28 @@ export const [ChatContext, useChat] = createContextHook(() => {
     setCurrentSessionId(null);
   };
 
+  const currentSession = getCurrentSession();
+
   return {
     sessions,
     currentSessionId,
+    currentSession,
     isLoading,
-    getCurrentSession,
-    createNewSession,
+    addMessage,
+    updateMessage,
+    updateMessageContent,
+    updateMessageThinkingStatus,
+    updateMessageAgentType,
+    startNewSession,
+    selectSession,
     deleteSession,
-    setCurrentSessionId,
-    updateSessionTitle,
     sendMessage,
     sendImageMessage,
     sendDocumentMessage,
     sendAudioMessage,
     clearAllSessions,
+    plan,
+    thoughts,
   };
 });
 
