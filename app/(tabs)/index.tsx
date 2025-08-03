@@ -57,6 +57,8 @@ export default function ChatScreen() {
   const [recording, setRecording] = useState<Audio.Recording | null>(null);
   const [showAgentPicker, setShowAgentPicker] = useState(false);
   const [showSessionPicker, setShowSessionPicker] = useState(false);
+  const [plan, setPlan] = useState<string[]>([]);
+  const [thoughts, setThoughts] = useState('');
 
   const { user } = useAuth();
   const { t } = useLanguage();
@@ -93,6 +95,7 @@ export default function ChatScreen() {
     }
   }, [currentSession?.messages]);
 
+
   useEffect(() => {
     const keyboardDidShowListener = Keyboard.addListener(
       'keyboardDidShow',
@@ -104,6 +107,7 @@ export default function ChatScreen() {
       keyboardDidShowListener.remove();
     };
   }, []);
+
 
   const handleSendMessage = async () => {
     if (inputText.trim() === '') return;
