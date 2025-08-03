@@ -3,256 +3,256 @@ import { Agent, AgentType } from '@/types/chat';
 export const AGENTS: Record<AgentType, Agent> = {
   general: {
     type: 'general',
-    name: 'المساعد العام',
-    description: 'مساعد ذكي شامل للمحادثة العامة والاستفسارات المتنوعة',
+    name: 'agent.general.name',
+    description: 'agent.general.description',
     capabilities: [
-      'المحادثة الطبيعية',
-      'الإجابة على الأسئلة العامة',
-      'تقديم المساعدة والنصائح',
-      'الترجمة البسيطة',
-      'العمليات الحسابية الأساسية'
+      'agent.general.capabilities.0',
+      'agent.general.capabilities.1',
+      'agent.general.capabilities.2',
+      'agent.general.capabilities.3',
+      'agent.general.capabilities.4'
     ],
-    systemPrompt: 'أنت مساعد ذكي مفيد وودود. تجيب على الأسئلة بوضوح وتقدم المساعدة في مختلف المواضيع.',
+    systemPrompt: 'agent.general.systemPrompt',
     icon: '🤖',
     color: '#2563EB'
   },
   web_search: {
     type: 'web_search',
-    name: 'باحث الويب',
-    description: 'متخصص في البحث عن المعلومات الحديثة على الإنترنت',
+    name: 'agent.web_search.name',
+    description: 'agent.web_search.description',
     capabilities: [
-      'البحث في الإنترنت',
-      'جمع المعلومات الحديثة',
-      'التحقق من الحقائق',
-      'البحث الأكاديمي',
-      'تتبع الأخبار والأحداث'
+      'agent.web_search.capabilities.0',
+      'agent.web_search.capabilities.1',
+      'agent.web_search.capabilities.2',
+      'agent.web_search.capabilities.3',
+      'agent.web_search.capabilities.4'
     ],
-    systemPrompt: 'أنت خبير في البحث على الإنترنت. تبحث عن المعلومات الدقيقة والحديثة وتقدمها بشكل منظم مع ذكر المصادر.',
+    systemPrompt: 'agent.web_search.systemPrompt',
     icon: '🔍',
     color: '#059669'
   },
   image_generator: {
     type: 'image_generator',
-    name: 'مولد الصور',
-    description: 'ينشئ صور فنية وتصاميم بناءً على الوصف النصي',
+    name: 'agent.image_generator.name',
+    description: 'agent.image_generator.description',
     capabilities: [
-      'إنشاء الصور من النص',
-      'التصميم الفني',
-      'الرسوم التوضيحية',
-      'تعديل الصور',
-      'إنشاء الشعارات'
+      'agent.image_generator.capabilities.0',
+      'agent.image_generator.capabilities.1',
+      'agent.image_generator.capabilities.2',
+      'agent.image_generator.capabilities.3',
+      'agent.image_generator.capabilities.4'
     ],
-    systemPrompt: 'أنت فنان رقمي متخصص في إنشاء الصور. تحول الأوصاف النصية إلى صور جميلة ومعبرة.',
+    systemPrompt: 'agent.image_generator.systemPrompt',
     icon: '🎨',
     color: '#DC2626'
   },
   code_analyst: {
     type: 'code_analyst',
-    name: 'محلل الأكواد',
-    description: 'خبير في البرمجة وتحليل الأكواد وحل المشاكل التقنية',
+    name: 'agent.code_analyst.name',
+    description: 'agent.code_analyst.description',
     capabilities: [
-      'تحليل الأكواد',
-      'إصلاح الأخطاء',
-      'كتابة البرامج',
-      'مراجعة الكود',
-      'شرح المفاهيم البرمجية'
+      'agent.code_analyst.capabilities.0',
+      'agent.code_analyst.capabilities.1',
+      'agent.code_analyst.capabilities.2',
+      'agent.code_analyst.capabilities.3',
+      'agent.code_analyst.capabilities.4'
     ],
-    systemPrompt: 'أنت مطور برمجيات خبير. تحلل الأكواد وتقدم حلول برمجية فعالة وتشرح المفاهيم التقنية بوضوح.',
+    systemPrompt: 'agent.code_analyst.systemPrompt',
     icon: '💻',
     color: '#7C3AED'
   },
   document_analyzer: {
     type: 'document_analyzer',
-    name: 'محلل المستندات',
-    description: 'متخصص في قراءة وتحليل المستندات والملفات',
+    name: 'agent.document_analyzer.name',
+    description: 'agent.document_analyzer.description',
     capabilities: [
-      'قراءة المستندات',
-      'تلخيص النصوص',
-      'استخراج المعلومات',
-      'تحليل البيانات',
-      'ترجمة المحتوى'
+      'agent.document_analyzer.capabilities.0',
+      'agent.document_analyzer.capabilities.1',
+      'agent.document_analyzer.capabilities.2',
+      'agent.document_analyzer.capabilities.3',
+      'agent.document_analyzer.capabilities.4'
     ],
-    systemPrompt: 'أنت خبير في تحليل المستندات. تقرأ وتفهم المحتوى وتستخرج المعلومات المهمة وتقدم ملخصات مفيدة.',
+    systemPrompt: 'agent.document_analyzer.systemPrompt',
     icon: '📄',
     color: '#EA580C'
   },
   data_scientist: {
     type: 'data_scientist',
-    name: 'عالم البيانات',
-    description: 'خبير في تحليل البيانات والإحصاءات وإنشاء التصورات',
+    name: 'agent.data_scientist.name',
+    description: 'agent.data_scientist.description',
     capabilities: [
-      'تحليل البيانات',
-      'الإحصاءات المتقدمة',
-      'إنشاء الرسوم البيانية',
-      'التنبؤ والنمذجة',
-      'تفسير النتائج'
+      'agent.data_scientist.capabilities.0',
+      'agent.data_scientist.capabilities.1',
+      'agent.data_scientist.capabilities.2',
+      'agent.data_scientist.capabilities.3',
+      'agent.data_scientist.capabilities.4'
     ],
-    systemPrompt: 'أنت عالم بيانات خبير. تحلل البيانات وتستخرج الأنماط والرؤى وتقدم تفسيرات واضحة للنتائج.',
+    systemPrompt: 'agent.data_scientist.systemPrompt',
     icon: '📊',
     color: '#0891B2'
   },
   creative_writer: {
     type: 'creative_writer',
-    name: 'الكاتب المبدع',
-    description: 'متخصص في الكتابة الإبداعية والأدبية',
+    name: 'agent.creative_writer.name',
+    description: 'agent.creative_writer.description',
     capabilities: [
-      'كتابة القصص',
-      'الشعر والأدب',
-      'السيناريوهات',
-      'المحتوى الإبداعي',
-      'التحرير والمراجعة'
+      'agent.creative_writer.capabilities.0',
+      'agent.creative_writer.capabilities.1',
+      'agent.creative_writer.capabilities.2',
+      'agent.creative_writer.capabilities.3',
+      'agent.creative_writer.capabilities.4'
     ],
-    systemPrompt: 'أنت كاتب مبدع موهوب. تكتب نصوص جميلة ومؤثرة وتساعد في تطوير الأفكار الإبداعية.',
+    systemPrompt: 'agent.creative_writer.systemPrompt',
     icon: '✍️',
     color: '#BE185D'
   },
   translator: {
     type: 'translator',
-    name: 'المترجم',
-    description: 'خبير في الترجمة بين اللغات المختلفة',
+    name: 'agent.translator.name',
+    description: 'agent.translator.description',
     capabilities: [
-      'الترجمة الفورية',
-      'الترجمة الأدبية',
-      'الترجمة التقنية',
-      'مراجعة الترجمات',
-      'تعلم اللغات'
+      'agent.translator.capabilities.0',
+      'agent.translator.capabilities.1',
+      'agent.translator.capabilities.2',
+      'agent.translator.capabilities.3',
+      'agent.translator.capabilities.4'
     ],
-    systemPrompt: 'أنت مترجم محترف. تترجم النصوص بدقة وتحافظ على المعنى والسياق الثقافي.',
+    systemPrompt: 'agent.translator.systemPrompt',
     icon: '🌐',
     color: '#059669'
   },
   researcher: {
     type: 'researcher',
-    name: 'الباحث',
-    description: 'متخصص في البحث العلمي والأكاديمي المتعمق',
+    name: 'agent.researcher.name',
+    description: 'agent.researcher.description',
     capabilities: [
-      'البحث العلمي',
-      'جمع المراجع',
-      'تحليل الدراسات',
-      'كتابة التقارير',
-      'التحقق من المصادر'
+      'agent.researcher.capabilities.0',
+      'agent.researcher.capabilities.1',
+      'agent.researcher.capabilities.2',
+      'agent.researcher.capabilities.3',
+      'agent.researcher.capabilities.4'
     ],
-    systemPrompt: 'أنت باحث أكاديمي متخصص. تجري بحوث شاملة وتقدم معلومات موثوقة مع ذكر المصادر العلمية.',
+    systemPrompt: 'agent.researcher.systemPrompt',
     icon: '🔬',
     color: '#7C2D12'
   },
   planner: {
     type: 'planner',
-    name: 'المخطط',
-    description: 'خبير في التخطيط وإدارة المشاريع والوقت',
+    name: 'agent.planner.name',
+    description: 'agent.planner.description',
     capabilities: [
-      'وضع الخطط',
-      'إدارة المشاريع',
-      'تنظيم الوقت',
-      'تحديد الأهداف',
-      'متابعة التقدم'
+      'agent.planner.capabilities.0',
+      'agent.planner.capabilities.1',
+      'agent.planner.capabilities.2',
+      'agent.planner.capabilities.3',
+      'agent.planner.capabilities.4'
     ],
-    systemPrompt: 'أنت خبير في التخطيط والتنظيم. تساعد في وضع خطط فعالة وتنظيم المهام والأهداف.',
+    systemPrompt: 'agent.planner.systemPrompt',
     icon: '📅',
     color: '#0F766E'
   },
   financial_analyst: {
     type: 'financial_analyst',
-    name: 'المحلل المالي',
-    description: 'خبير في التحليل المالي والاستثماري',
+    name: 'agent.financial_analyst.name',
+    description: 'agent.financial_analyst.description',
     capabilities: [
-      'التحليل المالي',
-      'تقييم الاستثمارات',
-      'التخطيط المالي',
-      'تحليل المخاطر',
-      'النصائح المالية'
+      'agent.financial_analyst.capabilities.0',
+      'agent.financial_analyst.capabilities.1',
+      'agent.financial_analyst.capabilities.2',
+      'agent.financial_analyst.capabilities.3',
+      'agent.financial_analyst.capabilities.4'
     ],
-    systemPrompt: 'أنت محلل مالي خبير. تقدم تحليلات مالية دقيقة ونصائح استثمارية مدروسة.',
+    systemPrompt: 'agent.financial_analyst.systemPrompt',
     icon: '💰',
     color: '#059669'
   },
   travel_agent: {
     type: 'travel_agent',
-    name: 'وكيل السفر',
-    description: 'متخصص في التخطيط للرحلات والسفر',
+    name: 'agent.travel_agent.name',
+    description: 'agent.travel_agent.description',
     capabilities: [
-      'تخطيط الرحلات',
-      'حجز الفنادق',
-      'معلومات السفر',
-      'النصائح السياحية',
-      'إدارة الميزانية'
+      'agent.travel_agent.capabilities.0',
+      'agent.travel_agent.capabilities.1',
+      'agent.travel_agent.capabilities.2',
+      'agent.travel_agent.capabilities.3',
+      'agent.travel_agent.capabilities.4'
     ],
-    systemPrompt: 'أنت وكيل سفر محترف. تساعد في تخطيط الرحلات وتقدم نصائح سياحية مفيدة.',
+    systemPrompt: 'agent.travel_agent.systemPrompt',
     icon: '✈️',
     color: '#0284C7'
   },
   health_advisor: {
     type: 'health_advisor',
-    name: 'المستشار الصحي',
-    description: 'يقدم معلومات ونصائح صحية عامة',
+    name: 'agent.health_advisor.name',
+    description: 'agent.health_advisor.description',
     capabilities: [
-      'النصائح الصحية',
-      'معلومات طبية عامة',
-      'التغذية والحمية',
-      'اللياقة البدنية',
-      'الصحة النفسية'
+      'agent.health_advisor.capabilities.0',
+      'agent.health_advisor.capabilities.1',
+      'agent.health_advisor.capabilities.2',
+      'agent.health_advisor.capabilities.3',
+      'agent.health_advisor.capabilities.4'
     ],
-    systemPrompt: 'أنت مستشار صحي. تقدم معلومات صحية عامة ونصائح للحفاظ على الصحة، مع التأكيد على ضرورة استشارة الطبيب.',
+    systemPrompt: 'agent.health_advisor.systemPrompt',
     icon: '🏥',
     color: '#DC2626'
   },
   education_tutor: {
     type: 'education_tutor',
-    name: 'المعلم الخصوصي',
-    description: 'متخصص في التعليم وشرح المفاهيم الأكاديمية',
+    name: 'agent.education_tutor.name',
+    description: 'agent.education_tutor.description',
     capabilities: [
-      'شرح المفاهيم',
-      'حل المسائل',
-      'التدريس التفاعلي',
-      'إعداد الامتحانات',
-      'متابعة التقدم'
+      'agent.education_tutor.capabilities.0',
+      'agent.education_tutor.capabilities.1',
+      'agent.education_tutor.capabilities.2',
+      'agent.education_tutor.capabilities.3',
+      'agent.education_tutor.capabilities.4'
     ],
-    systemPrompt: 'أنت معلم خبير. تشرح المفاهيم بطريقة واضحة ومبسطة وتساعد الطلاب على التعلم والفهم.',
+    systemPrompt: 'agent.education_tutor.systemPrompt',
     icon: '🎓',
     color: '#7C3AED'
   },
   live_search_agent: {
     type: 'live_search_agent',
-    name: 'وكيل البحث المباشر',
-    description: 'متخصص في البحث المباشر والحصول على معلومات حية ومحدثة',
+    name: 'agent.live_search_agent.name',
+    description: 'agent.live_search_agent.description',
     capabilities: [
-      'البحث المباشر',
-      'المعلومات الحية',
-      'أسعار الأسهم',
-      'آخر الأخبار',
-      'البيانات المحدثة'
+      'agent.live_search_agent.capabilities.0',
+      'agent.live_search_agent.capabilities.1',
+      'agent.live_search_agent.capabilities.2',
+      'agent.live_search_agent.capabilities.3',
+      'agent.live_search_agent.capabilities.4'
     ],
-    systemPrompt: 'أنت وكيل بحث متقدم مع وصول مباشر للإنترنت. تحصل على أحدث المعلومات والبيانات الحية.',
+    systemPrompt: 'agent.live_search_agent.systemPrompt',
     icon: '🔴',
     color: '#EF4444'
   },
   file_analyzer: {
     type: 'file_analyzer',
-    name: 'محلل الملفات',
-    description: 'متخصص في تحليل أنواع مختلفة من الملفات',
+    name: 'agent.file_analyzer.name',
+    description: 'agent.file_analyzer.description',
     capabilities: [
-      'تحليل الملفات',
-      'استخراج البيانات',
-      'تحويل الصيغ',
-      'فهرسة المحتوى',
-      'التحقق من الملفات'
+      'agent.file_analyzer.capabilities.0',
+      'agent.file_analyzer.capabilities.1',
+      'agent.file_analyzer.capabilities.2',
+      'agent.file_analyzer.capabilities.3',
+      'agent.file_analyzer.capabilities.4'
     ],
-    systemPrompt: 'أنت خبير في تحليل الملفات. تستطيع قراءة وتحليل أنواع مختلفة من الملفات واستخراج المعلومات منها.',
+    systemPrompt: 'agent.file_analyzer.systemPrompt',
     icon: '📁',
     color: '#0891B2'
   },
   code_executor: {
     type: 'code_executor',
-    name: 'منفذ الأكواد',
-    description: 'متخصص في تنفيذ الأكواد البرمجية والعمليات الحسابية',
+    name: 'agent.code_executor.name',
+    description: 'agent.code_executor.description',
     capabilities: [
-      'تنفيذ الأكواد',
-      'العمليات الحسابية',
-      'معالجة البيانات',
-      'الحوسبة العلمية',
-      'التحليل الرقمي'
+      'agent.code_executor.capabilities.0',
+      'agent.code_executor.capabilities.1',
+      'agent.code_executor.capabilities.2',
+      'agent.code_executor.capabilities.3',
+      'agent.code_executor.capabilities.4'
     ],
-    systemPrompt: 'أنت منفذ أكواد متقدم. تستطيع تنفيذ الأكواد البرمجية وإجراء العمليات الحسابية المعقدة.',
+    systemPrompt: 'agent.code_executor.systemPrompt',
     icon: '⚡',
     color: '#F59E0B'
   }
