@@ -89,7 +89,6 @@ export default function ChatScreen() {
       scrollViewRef.current.scrollToEnd({ animated: true });
     }
   }, [currentSession?.messages]);
-
   useEffect(() => {
     const keyboardDidShowListener = Keyboard.addListener(
       'keyboardDidShow',
@@ -101,7 +100,6 @@ export default function ChatScreen() {
       keyboardDidShowListener.remove();
     };
   }, []);
-
   const handleSendMessage = async () => {
     if (inputText.trim() === '') return;
     sendMessage(inputText.trim());
