@@ -12,6 +12,7 @@ import colors from '@/constants/colors';
 import * as ImagePicker from 'expo-image-picker';
 import * as DocumentPicker from 'expo-document-picker';
 import { Audio } from 'expo-av';
+import { useLanguage } from '@/hooks/language-store';
 
 interface ChatInputProps {
   onSendMessage: (message: string) => void;
@@ -26,8 +27,9 @@ const ChatInput: React.FC<ChatInputProps> = ({
   onSendImage,
   onSendDocument,
   onSendAudio,
-  placeholder = 'اكتب رسالتك هنا...',
+  placeholder,
 }) => {
+  const { t } = useLanguage();
   const [inputText, setInputText] = useState('');
   const [isRecording, setIsRecording] = useState(false);
   const [recording, setRecording] = useState<Audio.Recording | null>(null);
@@ -44,7 +46,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
   const handlePickImage = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') {
-      Alert.alert('إذن مطلوب', 'يرجى منح إذن الوصول إلى المعرض لاختيار صورة.');
+      Alert.alert(t('chat.permissions.mediaLibrary.title', 'Permission required'), t('chat.permissions.mediaLibrary.message', 'Please grant media library permissions to pick an image.'));
       return;
     }
 
@@ -68,7 +70,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
   const handleTakePhoto = async () => {
     const { status } = await ImagePicker.requestCameraPermissionsAsync();
     if (status !== 'granted') {
-      Alert.alert('إذن مطلوب', 'يرجى منح إذن الوصول إلى الكاميرا لالتقاط صورة.');
+      Alert.alert(t('chat.permissions.camera.title', 'Permission required'), t('chat.permissions.camera.message', 'Please grant camera permissions to take a photo.'));
       return;
     }
 
@@ -108,7 +110,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
     try {
       const { status } = await Audio.requestPermissionsAsync();
       if (status !== 'granted') {
-        Alert.alert('إذن مطلوب', 'يرجى منح إذن الوصول إلى الميكروفون للتسجيل.');
+        Alert.alert(t('chat.permissions.microphone.title', 'Permission required'), t('chat.permissions.microphone.message', 'Please grant microphone permissions to record audio.'));
         return;
       }
 
@@ -145,7 +147,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
       setIsRecording(true);
     } catch (err) {
       console.error('Failed to start recording', err);
-      Alert.alert('خطأ في التسجيل', 'فشل في بدء التسجيل. يرجى المحاولة مرة أخرى.');
+      Alert.alert(t('chat.errors.startRecording.title', 'Recording Error'), t('chat.errors.startRecording.message', 'Failed to start recording. Please try again.'));
     }
   };
 
@@ -170,7 +172,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
       }
     } catch (err) {
       console.error('Failed to stop recording', err);
-      Alert.alert('خطأ في التسجيل', 'فشل في إيقاف التسجيل. يرجى المحاولة مرة أخرى.');
+      Alert.alert(t('chat.errors.stopRecording.title', 'Recording Error'), t('chat.errors.stopRecording.message', 'Failed to stop recording. Please try again.'));
     } finally {
       setRecording(null);
     }
@@ -178,13 +180,13 @@ const ChatInput: React.FC<ChatInputProps> = ({
 
   const showAttachmentOptions = () => {
     Alert.alert(
-      'إرفاق ملف',
-      'اختر نوع المرفق',
+      t('chat.attachments.title', 'Attach a file'),
+      t('chat.attachments.message', 'Choose the attachment type'),
       [
-        { text: 'صورة من المعرض', onPress: handlePickImage },
-        { text: 'التقاط صورة', onPress: handleTakePhoto },
-        { text: 'ملف', onPress: handlePickDocument },
-        { text: 'إلغاء', style: 'cancel' },
+        { text: t('chat.attachments.gallery', 'Image from Gallery'), onPress: handlePickImage },
+        { text: t('chat.attachments.camera', 'Take a photo'), onPress: handleTakePhoto },
+        { text: t('chat.attachments.file', 'File'), onPress: handlePickDocument },
+        { text: t('chat.attachments.cancel', 'Cancel'), style: 'cancel' },
       ]
     );
   };
