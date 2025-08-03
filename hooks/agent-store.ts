@@ -145,14 +145,14 @@ export const [AgentContext, useAgent] = createContextHook(() => {
     context?: any
   ): Promise<TaskResult> => {
     setIsProcessing(true);
-    setCurrentTask('🤔 جاري تحليل الطلب...');
+    setCurrentTask('agent.status.analyzingRequest');
     
     try {
       // Select the best agent for the query
       const bestAgent = await selectBestAgent(query);
       const agent = AGENTS[bestAgent] || AGENTS['general'];
       
-      setCurrentTask(`🧠 استخدام ${agent.name}...`);
+      setCurrentTask(`agent.status.usingAgent,${agent.name}`);
       
       // Simulate processing time
       await new Promise(resolve => setTimeout(resolve, 1000));
@@ -205,7 +205,7 @@ export const [AgentContext, useAgent] = createContextHook(() => {
 
   const performWebSearch = async (query: string): Promise<TaskResult> => {
     try {
-      setCurrentTask('🌐 البحث في الإنترنت...');
+      setCurrentTask('agent.status.webSearch');
       
       const response = await fetch('https://toolkit.rork.com/text/llm/', {
         method: 'POST',
@@ -259,7 +259,7 @@ export const [AgentContext, useAgent] = createContextHook(() => {
 
   const performLiveSearch = async (query: string): Promise<TaskResult> => {
     try {
-      setCurrentTask('🔍 البحث المباشر...');
+      setCurrentTask('agent.status.liveSearch');
       
       const response = await fetch('https://toolkit.rork.com/text/llm/', {
         method: 'POST',
@@ -296,7 +296,7 @@ export const [AgentContext, useAgent] = createContextHook(() => {
 
   const generateImage = async (request: ImageGenerationRequest): Promise<TaskResult> => {
     try {
-      setCurrentTask('🎨 إنشاء الصورة...');
+      setCurrentTask('agent.status.generatingImage');
       
       const response = await fetch('https://toolkit.rork.com/images/generate/', {
         method: 'POST',
@@ -338,7 +338,7 @@ export const [AgentContext, useAgent] = createContextHook(() => {
 
   const executeCode = async (query: string, context?: any): Promise<TaskResult> => {
     try {
-      setCurrentTask('⚡ تنفيذ العملية الحسابية...');
+      setCurrentTask('agent.status.executingCode');
       
       const response = await fetch('https://toolkit.rork.com/text/llm/', {
         method: 'POST',
@@ -380,7 +380,7 @@ export const [AgentContext, useAgent] = createContextHook(() => {
 
   const analyzeCode = async (query: string, context?: any): Promise<TaskResult> => {
     try {
-      setCurrentTask('💻 تحليل الكود...');
+      setCurrentTask('agent.status.analyzingCode');
       
       const response = await fetch('https://toolkit.rork.com/text/llm/', {
         method: 'POST',
@@ -422,7 +422,7 @@ export const [AgentContext, useAgent] = createContextHook(() => {
 
   const analyzeData = async (query: string, context?: any): Promise<TaskResult> => {
     try {
-      setCurrentTask('📊 تحليل البيانات...');
+      setCurrentTask('agent.status.analyzingData');
       
       const response = await fetch('https://toolkit.rork.com/text/llm/', {
         method: 'POST',
@@ -464,7 +464,7 @@ export const [AgentContext, useAgent] = createContextHook(() => {
 
   const translateText = async (query: string, context?: any): Promise<TaskResult> => {
     try {
-      setCurrentTask('🌐 الترجمة...');
+      setCurrentTask('agent.status.translating');
       
       const response = await fetch('https://toolkit.rork.com/text/llm/', {
         method: 'POST',
@@ -506,7 +506,7 @@ export const [AgentContext, useAgent] = createContextHook(() => {
 
   const generateCreativeContent = async (query: string, context?: any): Promise<TaskResult> => {
     try {
-      setCurrentTask('✍️ الكتابة الإبداعية...');
+      setCurrentTask('agent.status.writing');
       
       const response = await fetch('https://toolkit.rork.com/text/llm/', {
         method: 'POST',
@@ -548,7 +548,7 @@ export const [AgentContext, useAgent] = createContextHook(() => {
 
   const analyzeFinancial = async (query: string, context?: any): Promise<TaskResult> => {
     try {
-      setCurrentTask('💰 التحليل المالي...');
+      setCurrentTask('agent.status.analyzingFinancial');
       
       const response = await fetch('https://toolkit.rork.com/text/llm/', {
         method: 'POST',
@@ -590,7 +590,7 @@ export const [AgentContext, useAgent] = createContextHook(() => {
 
   const planTravel = async (query: string, context?: any): Promise<TaskResult> => {
     try {
-      setCurrentTask('✈️ تخطيط الرحلة...');
+      setCurrentTask('agent.status.planningTravel');
       
       const response = await fetch('https://toolkit.rork.com/text/llm/', {
         method: 'POST',
@@ -632,7 +632,7 @@ export const [AgentContext, useAgent] = createContextHook(() => {
 
   const provideHealthAdvice = async (query: string, context?: any): Promise<TaskResult> => {
     try {
-      setCurrentTask('🏥 الاستشارة الصحية...');
+      setCurrentTask('agent.status.providingHealthAdvice');
       
       const response = await fetch('https://toolkit.rork.com/text/llm/', {
         method: 'POST',
@@ -674,7 +674,7 @@ export const [AgentContext, useAgent] = createContextHook(() => {
 
   const provideTutoring = async (query: string, context?: any): Promise<TaskResult> => {
     try {
-      setCurrentTask('🎓 التدريس...');
+      setCurrentTask('agent.status.providingTutoring');
       
       const response = await fetch('https://toolkit.rork.com/text/llm/', {
         method: 'POST',
@@ -716,7 +716,7 @@ export const [AgentContext, useAgent] = createContextHook(() => {
 
   const analyzeDocument = async (query: string, context?: any): Promise<TaskResult> => {
     try {
-      setCurrentTask('📄 تحليل المستند...');
+      setCurrentTask('agent.status.analyzingDocument');
       
       const response = await fetch('https://toolkit.rork.com/text/llm/', {
         method: 'POST',
@@ -758,7 +758,7 @@ export const [AgentContext, useAgent] = createContextHook(() => {
 
   const analyzeFile = async (query: string, context?: any): Promise<TaskResult> => {
     try {
-      setCurrentTask('📁 تحليل الملف...');
+      setCurrentTask('agent.status.analyzingFile');
       
       const response = await fetch('https://toolkit.rork.com/text/llm/', {
         method: 'POST',
@@ -800,7 +800,7 @@ export const [AgentContext, useAgent] = createContextHook(() => {
 
   const processGeneralQuery = async (agent: Agent, query: string, context?: any): Promise<TaskResult> => {
     try {
-      setCurrentTask('💬 معالجة الطلب...');
+      setCurrentTask('agent.status.processingRequest');
       
       const response = await fetch('https://toolkit.rork.com/text/llm/', {
         method: 'POST',

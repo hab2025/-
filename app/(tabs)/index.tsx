@@ -10,8 +10,10 @@ import {
   ActivityIndicator,
   Alert,
   TextInput,
+  Keyboard,
 } from 'react-native';
 import { Send, Plus, Mic, Brain, MessageSquare } from 'lucide-react-native';
+import { useHeaderHeight } from '@react-navigation/elements';
 import { useAuth } from '@/hooks/auth-store';
 import { useChat } from '@/hooks/chat-store';
 import { useAgent } from '@/hooks/agent-store';
@@ -87,7 +89,17 @@ export default function ChatScreen() {
       scrollViewRef.current.scrollToEnd({ animated: true });
     }
   }, [currentSession?.messages]);
-
+  useEffect(() => {
+    const keyboardDidShowListener = Keyboard.addListener(
+      'keyboardDidShow',
+      () => {
+        scrollViewRef.current?.scrollToEnd({ animated: true });
+      }
+    );
+    return () => {
+      keyboardDidShowListener.remove();
+    };
+  }, []);
   const handleSendMessage = async () => {
     if (inputText.trim() === '') return;
     sendMessage(inputText.trim());
@@ -225,7 +237,7 @@ export default function ChatScreen() {
     <BlurView intensity={90} style={StyleSheet.absoluteFillObject}>
       <View style={styles.agentPickerContainer}>
         <ScrollView contentContainerStyle={styles.agentPickerContent}>
-          <Text style={styles.agentPickerTitle}>اختر الوكلاء النشطين</Text>
+          <Text style={styles.agentPickerTitle}>{t('chat.agentPicker.title', 'Select Active Agents')}</Text>
           {allAgents.map((agent) => (
             <TouchableOpacity
               key={agent.type}
@@ -233,7 +245,7 @@ export default function ChatScreen() {
               onPress={() => handleAgentToggle(agent.type)}
             >
               <Text style={styles.agentPickerEmoji}>{agent.icon}</Text>
-              <Text style={styles.agentPickerName}>{agent.name}</Text>
+              <Text style={styles.agentPickerName}>{t(agent.name, agent.name)}</Text>
               {activeAgents.includes(agent.type) && (
                 <Text style={styles.agentPickerActive}>✓</Text>
               )}
@@ -241,7 +253,7 @@ export default function ChatScreen() {
           ))}
         </ScrollView>
         <TouchableOpacity style={styles.closeButton} onPress={() => setShowAgentPicker(false)}>
-          <Text style={styles.closeButtonText}>إغلاق</Text>
+          <Text style={styles.closeButtonText}>{t('chat.agentPicker.close', 'Close')}</Text>
         </TouchableOpacity>
       </View>
     </BlurView>
@@ -251,10 +263,10 @@ export default function ChatScreen() {
     <BlurView intensity={90} style={StyleSheet.absoluteFillObject}>
       <View style={styles.sessionPickerContainer}>
         <ScrollView contentContainerStyle={styles.sessionPickerContent}>
-          <Text style={styles.sessionPickerTitle}>محادثاتي</Text>
+          <Text style={styles.sessionPickerTitle}>{t('chat.sessionPicker.title', 'My Conversations')}</Text>
           <TouchableOpacity style={styles.newChatButton} onPress={handleNewChat}>
             <Plus size={20} color={colors.primary} />
-            <Text style={styles.newChatButtonText}>محادثة جديدة</Text>
+            <Text style={styles.newChatButtonText}>{t('chat.sessionPicker.newChat', 'New Conversation')}</Text>
           </TouchableOpacity>
           {sessions.map((session) => (
             <ChatSessionItem
@@ -273,11 +285,13 @@ export default function ChatScreen() {
     </BlurView>
   );
 
+  const headerHeight = useHeaderHeight();
+
   return (
     <KeyboardAvoidingView
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      keyboardVerticalOffset={Platform.OS === 'ios' ? 60 : 0} // Adjust as needed
+      keyboardVerticalOffset={headerHeight}
     >
       <LinearGradient
         colors={[colors.background, colors.card]}
@@ -287,12 +301,12 @@ export default function ChatScreen() {
       <View style={styles.header}>
         <TouchableOpacity onPress={() => setShowSessionPicker(true)} style={styles.headerButton}>
           <MessageSquare size={24} color={colors.text} />
-          <Text style={styles.headerButtonText}>المحادثات</Text>
+          <Text style={styles.headerButtonText}>{t('chat.header.conversations', 'Conversations')}</Text>
         </TouchableOpacity>
         <Text style={styles.headerTitle}>{currentSession?.title || t('chat.newChat', 'New Chat')}</Text>
         <TouchableOpacity onPress={() => setShowAgentPicker(true)} style={styles.headerButton}>
           <Brain size={24} color={colors.text} />
-          <Text style={styles.headerButtonText}>الوكلاء</Text>
+          <Text style={styles.headerButtonText}>{t('chat.header.agents', 'Agents')}</Text>
         </TouchableOpacity>
       </View>
 
@@ -308,15 +322,15 @@ export default function ChatScreen() {
         {isProcessing && currentTask && (
           <View style={styles.thinkingContainer}>
             <ActivityIndicator size="small" color={colors.primary} />
-            <Text style={styles.thinkingText}>{currentTask}</Text>
+            <Text style={styles.thinkingText}>{t(currentTask.split(',')[0], currentTask.split(',')[0]).replace('{agent}', t(currentTask.split(',')[1], currentTask.split(',')[1]))}</Text>
           </View>
         )}
       </ScrollView>
 
       <View style={styles.inputContainer}>
-        <TouchableOpacity style={styles.attachButton} onPress={() => Alert.alert('إرفاق', 'اختر نوع المرفق', [
-          { text: 'صورة', onPress: handlePickImage },
-          { text: 'ملف', onPress: handlePickDocument },
+        <TouchableOpacity style={styles.attachButton} onPress={() => Alert.alert(t('chat.attachments.title', 'Attach a file'), t('chat.attachments.message', 'Choose the attachment type'), [
+          { text: t('chat.attachments.gallery', 'Image from Gallery'), onPress: handlePickImage },
+          { text: t('chat.attachments.file', 'File'), onPress: handlePickDocument },
         ])}>
           <Plus size={24} color={colors.placeholder} />
         </TouchableOpacity>

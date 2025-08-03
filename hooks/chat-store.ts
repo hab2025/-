@@ -100,6 +100,7 @@ export const [ChatContext, useChat] = createContextHook(() => {
           }
         : s
     );
+    setSessions(updatedSessions);
     await saveSessions(updatedSessions);
   };
 
