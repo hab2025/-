@@ -8,15 +8,18 @@ import {
   ActivityIndicator,
   Linking,
 } from 'react-native';
+import { useLanguage } from '@/hooks/language-store';
 import { User, Bot, ExternalLink, Play, FileText, Code, Search } from 'lucide-react-native';
 import { Message, ContentPart } from '@/types/chat';
 import colors from '@/constants/colors';
+import CodeBlock from './CodeBlock';
 
 interface MessageBubbleProps {
   message: Message;
 }
 
 const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
+  const { t } = useLanguage();
   const isUser = message.role === 'user';
   const isThinking = message.isThinking;
 
@@ -27,7 +30,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
           return (
             <View key={index} style={styles.thinkingContainer}>
               <ActivityIndicator size="small" color={colors.primary} />
-              <Text style={styles.thinkingText}>جاري التفكير...</Text>
+              <Text style={styles.thinkingText}>{t('chat.thinking', 'Thinking...')}</Text>
             </View>
           );
         }
@@ -53,7 +56,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
             <TouchableOpacity style={styles.audioPlayButton}>
               <Play size={20} color={colors.lightText} />
             </TouchableOpacity>
-            <Text style={styles.audioText}>رسالة صوتية</Text>
+            <Text style={styles.audioText}>{t('chat.audioMessage', 'Audio Message')}</Text>
           </View>
         );
 
@@ -62,7 +65,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
           <View key={index} style={styles.fileContainer}>
             <FileText size={20} color={colors.primary} />
             <Text style={styles.fileName}>
-              {part.metadata?.fileName || 'ملف مرفق'}
+              {part.metadata?.fileName || t('chat.attachedFile', 'Attached File')}
             </Text>
           </View>
         );
@@ -72,7 +75,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
           <View key={index} style={styles.searchContainer}>
             <View style={styles.searchHeader}>
               <Search size={16} color={colors.primary} />
-              <Text style={styles.searchTitle}>نتائج البحث</Text>
+              <Text style={styles.searchTitle}>{t('chat.searchResults', 'Search Results')}</Text>
             </View>
             <Text style={styles.searchContent}>{part.content}</Text>
             {part.metadata?.searchResults && (
@@ -104,21 +107,11 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
 
       case 'code':
         return (
-          <View key={index} style={styles.codeContainer}>
-            <View style={styles.codeHeader}>
-              <Code size={16} color={colors.primary} />
-              <Text style={styles.codeLanguage}>
-                {part.metadata?.codeLanguage || 'Code'}
-              </Text>
-            </View>
-            <Text style={styles.codeContent}>{part.content}</Text>
-            {part.metadata?.codeOutput && (
-              <View style={styles.codeOutput}>
-                <Text style={styles.codeOutputLabel}>النتيجة:</Text>
-                <Text style={styles.codeOutputText}>{part.metadata.codeOutput}</Text>
-              </View>
-            )}
-          </View>
+          <CodeBlock
+            key={index}
+            code={part.content}
+            language={part.metadata?.codeLanguage}
+          />
         );
 
       case 'generated_image':
@@ -126,7 +119,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
           <View key={index} style={styles.generatedImageContainer}>
             <Image source={{ uri: part.content }} style={styles.generatedImage} />
             {part.metadata?.prompt && (
-              <Text style={styles.imagePrompt}>الوصف: {part.metadata.prompt}</Text>
+              <Text style={styles.imagePrompt}>{t('chat.imagePrompt', 'Prompt:')} {part.metadata.prompt}</Text>
             )}
           </View>
         );
@@ -135,7 +128,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
         return (
           <View key={index} style={styles.analysisContainer}>
             <Text style={styles.analysisTitle}>
-              تحليل {part.metadata?.analysisType || 'المحتوى'}
+              {t('chat.analysisTitle', 'Analysis of')} {part.metadata?.analysisType || t('chat.analysisTypeContent', 'Content')}
             </Text>
             <Text style={styles.analysisContent}>{part.content}</Text>
           </View>
@@ -171,10 +164,10 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
             )}
           </View>
           <Text style={styles.roleText}>
-            {isUser ? 'أنت' : 'المساعد'}
+            {isUser ? t('chat.you', 'You') : t('chat.assistant', 'Assistant')}
           </Text>
           {message.agentType && message.agentType !== 'general' && (
-            <Text style={styles.agentType}>({message.agentType})</Text>
+            <Text style={styles.agentType}>({t(`agent.${message.agentType}`, message.agentType)})</Text>
           )}
         </View>
 
