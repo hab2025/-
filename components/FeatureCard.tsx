@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { ChevronRight } from 'lucide-react-native';
 import colors from '@/constants/colors';
+import { useLanguage } from '@/hooks/language-store';
 
 export interface Feature {
   id: string;
@@ -18,6 +19,8 @@ interface FeatureCardProps {
 }
 
 const FeatureCard: React.FC<FeatureCardProps> = ({ feature, onPress }) => {
+  const { t } = useLanguage();
+
   return (
     <TouchableOpacity
       style={[
@@ -48,7 +51,7 @@ const FeatureCard: React.FC<FeatureCardProps> = ({ feature, onPress }) => {
         
         {!feature.isAvailable && (
           <View style={styles.comingSoonBadge}>
-            <Text style={styles.comingSoonText}>قريباً</Text>
+            <Text style={styles.comingSoonText}>{t('features.comingSoon', 'Coming Soon')}</Text>
           </View>
         )}
       </View>

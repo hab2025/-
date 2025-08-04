@@ -20,9 +20,9 @@ export default function SettingsScreen() {
   const handleLogout = () => {
     Alert.alert(
       t('settings.logout', 'Logout'),
-      'هل أنت متأكد أنك تريد تسجيل الخروج؟',
+      t('settings.logoutConfirm', 'Are you sure you want to log out?'),
       [
-        { text: 'إلغاء', style: 'cancel' },
+        { text: t('settings.cancel', 'Cancel'), style: 'cancel' },
         { text: t('settings.logout', 'Logout'), onPress: logout, style: 'destructive' },
       ]
     );
@@ -35,50 +35,50 @@ export default function SettingsScreen() {
   const settingsItems = [
     {
       id: 'profile',
-      title: 'الملف الشخصي',
-      subtitle: user?.username || 'غير محدد',
+      title: t('settings.profile.title', 'Profile'),
+      subtitle: user?.username || t('settings.profile.notSet', 'Not set'),
       icon: <User size={24} color={colors.primary} />,
-      onPress: () => Alert.alert('الملف الشخصي', 'ميزة قيد التطوير'),
+      onPress: () => Alert.alert(t('settings.profile.title', 'Profile'), t('settings.wip', 'Feature in development')),
     },
     {
       id: 'language',
       title: t('settings.language', 'Language'),
-      subtitle: language === 'ar' ? 'العربية' : 'English',
+      subtitle: language === 'ar' ? t('settings.languageAr', 'العربية') : t('settings.languageEn', 'English'),
       icon: <Globe size={24} color={colors.primary} />,
       onPress: () => {
         Alert.alert(
-          'اختر اللغة',
-          'Choose Language',
+          t('settings.languageSelect', 'Choose Language'),
+          '',
           [
-            { text: 'العربية', onPress: () => handleLanguageToggle('ar') },
-            { text: 'English', onPress: () => handleLanguageToggle('en') },
-            { text: 'إلغاء / Cancel', style: 'cancel' },
+            { text: t('settings.languageAr', 'العربية'), onPress: () => handleLanguageToggle('ar') },
+            { text: t('settings.languageEn', 'English'), onPress: () => handleLanguageToggle('en') },
+            { text: t('settings.cancel', 'Cancel'), style: 'cancel' },
           ]
         );
       },
     },
     {
       id: 'notifications',
-      title: 'الإشعارات',
-      subtitle: 'إدارة الإشعارات والتنبيهات',
+      title: t('settings.notifications.title', 'Notifications'),
+      subtitle: t('settings.notifications.subtitle', 'Manage notifications and alerts'),
       icon: <Bell size={24} color={colors.primary} />,
-      onPress: () => Alert.alert('الإشعارات', 'ميزة قيد التطوير'),
+      onPress: () => Alert.alert(t('settings.notifications.title', 'Notifications'), t('settings.wip', 'Feature in development')),
     },
     {
       id: 'privacy',
-      title: 'الخصوصية والأمان',
-      subtitle: 'إعدادات الخصوصية والحماية',
+      title: t('settings.privacy.title', 'Privacy and Security'),
+      subtitle: t('settings.privacy.subtitle', 'Privacy and security settings'),
       icon: <Shield size={24} color={colors.primary} />,
-      onPress: () => Alert.alert('الخصوصية', 'ميزة قيد التطوير'),
+      onPress: () => Alert.alert(t('settings.privacy.title', 'Privacy and Security'), t('settings.wip', 'Feature in development')),
     },
     {
       id: 'about',
-      title: 'حول التطبيق',
-      subtitle: 'معلومات التطبيق والإصدار',
+      title: t('settings.about.title', 'About the App'),
+      subtitle: t('settings.about.subtitle', 'App information and version'),
       icon: <Info size={24} color={colors.primary} />,
       onPress: () => Alert.alert(
-        'حول التطبيق',
-        'مساعد الذكاء الاصطناعي\nالإصدار 1.0.0\n\nتطبيق ذكي متقدم يوفر مساعدة شاملة في مختلف المجالات باستخدام تقنيات الذكاء الاصطناعي المتطورة.'
+        t('settings.about.title', 'About the App'),
+        t('settings.about.description', 'AI Assistant\nVersion 1.0.0\n\nAn advanced smart application that provides comprehensive assistance in various fields using advanced artificial intelligence technologies.')
       ),
     },
   ];
@@ -108,7 +108,7 @@ export default function SettingsScreen() {
       <View style={styles.header}>
         <SettingsIcon size={32} color={colors.primary} />
         <Text style={styles.headerTitle}>{t('settings.title', 'Settings')}</Text>
-        <Text style={styles.headerSubtitle}>إدارة إعدادات التطبيق والحساب</Text>
+        <Text style={styles.headerSubtitle}>{t('settings.header.subtitle', 'Manage app and account settings')}</Text>
       </View>
 
       <View style={styles.userSection}>
@@ -116,15 +116,15 @@ export default function SettingsScreen() {
           <User size={40} color={colors.lightText} />
         </View>
         <View style={styles.userInfo}>
-          <Text style={styles.userName}>{user?.username || 'المستخدم'}</Text>
+          <Text style={styles.userName}>{user?.username || t('settings.user.defaultName', 'User')}</Text>
           <Text style={styles.userRole}>
-            {user?.role === 'admin' ? 'مدير النظام' : 'مستخدم'}
+            {user?.role === 'admin' ? t('settings.user.admin', 'System Administrator') : t('settings.user.user', 'User')}
           </Text>
         </View>
       </View>
 
       <View style={styles.settingsSection}>
-        <Text style={styles.sectionTitle}>الإعدادات العامة</Text>
+        <Text style={styles.sectionTitle}>{t('settings.general', 'General Settings')}</Text>
         {settingsItems.map(renderSettingItem)}
       </View>
 
@@ -141,10 +141,10 @@ export default function SettingsScreen() {
 
       <View style={styles.footer}>
         <Text style={styles.footerText}>
-          مساعد الذكاء الاصطناعي v1.0.0
+          {t('app.title', 'AI Assistant')} v1.0.0
         </Text>
         <Text style={styles.footerSubtext}>
-          تم التطوير بواسطة فريق التطوير
+          {t('settings.footer.developedBy', 'Developed by the development team')}
         </Text>
       </View>
     </ScrollView>
