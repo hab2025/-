@@ -20,6 +20,7 @@ import { useAgent } from '@/hooks/agent-store';
 import { useLanguage } from '@/hooks/language-store';
 import MessageBubble from '@/components/MessageBubble';
 import ChatSessionItem from '@/components/ChatSessionItem';
+import ThoughtProcess from '@/components/ThoughtProcess';
 import colors from '@/constants/colors';
 import { AgentType, ChatSession } from '@/types/chat';
 import * as ImagePicker from 'expo-image-picker';
@@ -56,6 +57,8 @@ export default function ChatScreen() {
   const [recording, setRecording] = useState<Audio.Recording | null>(null);
   const [showAgentPicker, setShowAgentPicker] = useState(false);
   const [showSessionPicker, setShowSessionPicker] = useState(false);
+  const [plan, setPlan] = useState<string[]>([]);
+  const [thoughts, setThoughts] = useState('');
 
   const { user } = useAuth();
   const { t } = useLanguage();
