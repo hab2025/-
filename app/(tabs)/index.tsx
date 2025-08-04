@@ -324,12 +324,11 @@ export default function ChatScreen() {
         {currentSession?.messages.map((message) => (
           <MessageBubble key={message.id} message={message} />
         ))}
-        {isProcessing && (
-          <ThoughtProcess
-            plan={plan}
-            currentTool={t(currentTask?.split(',')[0] || '', currentTask?.split(',')[0] || '').replace('{agent}', t(currentTask?.split(',')[1] || '', currentTask?.split(',')[1] || ''))}
-            thoughts={thoughts}
-          />
+        {isProcessing && currentTask && (
+          <View style={styles.thinkingContainer}>
+            <ActivityIndicator size="small" color={colors.primary} />
+            <Text style={styles.thinkingText}>{t(currentTask.split(',')[0], currentTask.split(',')[0]).replace('{agent}', t(currentTask.split(',')[1], currentTask.split(',')[1]))}</Text>
+          </View>
         )}
       </ScrollView>
 
