@@ -338,42 +338,38 @@ export const [AgentContext, useAgent] = createContextHook(() => {
 
   const executeCode = async (query: string, context?: any): Promise<TaskResult> => {
     try {
-      setCurrentTask('agent.status.executingCode');
+      setCurrentTask('agent.status.creatingSandbox');
       
-      const response = await fetch('https://toolkit.rork.com/text/llm/', {
+      // In a real Codespaces environment, you might need to use a dynamically generated URL,
+      // but for local development, localhost should work.
+      const serverUrl = 'http://localhost:3000';
+
+      const response = await fetch(`${serverUrl}/create-sandbox`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          messages: [
-            {
-              role: 'system',
-              content: 'أنت منفذ أكواد متقدم. قم بحل المسائل الرياضية والحسابية وتنفيذ العمليات المطلوبة.'
-            },
-            {
-              role: 'user',
-              content: query
-            }
-          ]
-        })
+        // We can pass the query or other context to the server if needed in the future
+        body: JSON.stringify({ query, context })
       });
 
       if (!response.ok) {
         const errorBody = await response.text();
-        throw new Error(`فشل طلب تنفيذ الكود: ${response.status} ${response.statusText} - ${errorBody}`);
+        throw new Error(`Failed to create sandbox: ${response.status} ${response.statusText} - ${errorBody}`);
       }
 
       const data = await response.json();
-      
+      const sandboxId = data.sandboxId;
+
       return {
         success: true,
-        data: { response: data.completion },
-        metadata: { executionType: 'calculation' }
+        data: { response: `Successfully created sandbox with ID: ${sandboxId}. You can now execute code.` },
+        metadata: { sandboxId, executionType: 'sandbox_created' }
       };
     } catch (error) {
       console.error('Code execution error:', error);
+      const errorMessage = error instanceof Error ? error.message : String(error);
       return {
         success: false,
-        error: 'فشل في تنفيذ العملية الحسابية. يرجى المحاولة مرة أخرى.'
+        error: `Failed to create a secure sandbox. Please ensure the backend server is running. Error: ${errorMessage}`
       };
     }
   };
@@ -828,7 +824,7 @@ export const [AgentContext, useAgent] = createContextHook(() => {
       
       return {
         success: true,
-        data: { response: data.completion },
+        data: { response: a.completion },
         metadata: { agentType: agent.type }
       };
     } catch (error) {
@@ -852,4 +848,3 @@ export const [AgentContext, useAgent] = createContextHook(() => {
     processWithAgent,
   };
 });
-
