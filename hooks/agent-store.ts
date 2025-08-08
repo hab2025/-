@@ -125,30 +125,64 @@ class SearchService {
       );
     }
 
-    this.lastSearchTime = Date.now();
+  const executeCode = async (query: string, context?: any): Promise<TaskResult> => {
+    try {
+      setCurrentTask('agent.status.creatingSandbox');
+      
+      // In a real Codespaces environment, you might need to use a dynamically generated URL,
+      // but for local development, localhost should work.
+      const serverUrl = 'http://localhost:3000';
 
-    return NetworkHelper.retryOperation(async () => {
-      if (!API_CONFIG.API_KEY || API_CONFIG.API_KEY.includes('your-api-key')) {
-        throw new Error('مفتاح API للبحث غير مُعرّف');
+      const response = await fetch(`${serverUrl}/create-sandbox`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        // We can pass the query or other context to the server if needed in the future
+        body: JSON.stringify({ query, context })
+      });
+
+      if (!response.ok) {
+        const errorBody = await response.text();
+        throw new Error(`Failed to create sandbox: ${response.status} ${response.statusText} - ${errorBody}`);
       }
 
-      const response = await NetworkHelper.fetchWithTimeout(
-        API_CONFIG.SEARCH_ENDPOINT,
-        {
-          method: 'POST',
-          headers: { 
-            'X-API-KEY': API_CONFIG.API_KEY,
-            'Content-Type': 'application/json' 
-          },
-          body: JSON.stringify({ 
-            q: query,
-            num: 5,
-            gl: 'sa',
-            hl: 'ar'
-          }),
-        },
-        API_CONFIG.REQUEST_TIMEOUT
-      );
+      const data = await response.json();
+      const sandboxId = data.sandboxId;
+
+      return {
+        success: true,
+        data: { response: `Successfully created sandbox with ID: ${sandboxId}. You can now execute code.` },
+        metadata: { sandboxId, executionType: 'sandbox_created' }
+      };
+    } catch (error) {
+      console.error('Code execution error:', error);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      return {
+        success: false,
+        error: `Failed to create a secure sandbox. Please ensure the backend server is running. Error: ${errorMessage}`
+      };
+    }
+  };
+
+  const analyzeCode = async (query: string, context?: any): Promise<TaskResult> => {
+    try {
+      setCurrentTask('agent.status.analyzingCode');
+      
+      const response = await fetch('https://toolkit.rork.com/text/llm/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          messages: [
+            {
+              role: 'system',
+              content: 'أنت خبير في تحليل الأكواد البرمجية. قم بتحليل الكود وشرحه وتقديم التحسينات.'
+            },
+            {
+              role: 'user',
+              content: query
+            }
+          ]
+        })
+      });
 
       if (!response.ok) {
         throw new Error(`فشل البحث: HTTP ${response.status}`);
