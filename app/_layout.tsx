@@ -1,48 +1,65 @@
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { Stack } from "expo-router";
-import * as SplashScreen from "expo-splash-screen";
-import React, { useEffect } from "react";
-import { GestureHandlerRootView } from "react-native-gesture-handler";
-import { AuthContext } from "@/hooks/auth-store";
-import { ChatContext } from "@/hooks/chat-store";
-import { LanguageContext } from "@/hooks/language-store";
-import { AgentContext } from "@/hooks/agent-store";
+// app/_layout.tsx
 
-// Prevent the splash screen from auto-hiding before asset loading is complete.
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { Slot, useRouter, useSegments } from 'expo-router';
+import React, { useEffect } from 'react';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { useAuthStore } from '@/hooks/auth-store';
+import { LanguageContext, useLanguage } from '@/hooks/language-store'; // <-- Import both
+import * as SplashScreen from 'expo-splash-screen';
+import { View, ActivityIndicator } from 'react-native';
+import colors from '@/constants/colors';
+
 SplashScreen.preventAutoHideAsync();
-
 const queryClient = new QueryClient();
 
-function RootLayoutNav() {
-  return (
-    <Stack screenOptions={{ headerBackTitle: "Back" }}>
-      <Stack.Screen name="index" options={{ headerShown: false }} />
-      <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-      <Stack.Screen name="login" options={{ headerShown: false }} />
-      <Stack.Screen name="modal" options={{ presentation: "modal" }} />
-    </Stack>
-  );
-}
+const AppInitializer = () => {
+  // Get the loading state from BOTH stores
+  const { initialized: isUserLoaded } = useAuthStore();
+  const { isLoaded: isLanguageLoaded } = useLanguage();
+
+  // If either is not loaded, show the loading screen
+  if (!isUserLoaded || !isLanguageLoaded) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.background }}>
+        <ActivityIndicator size="large" color={colors.primary} />
+      </View>
+    );
+  }
+
+  // Once both are loaded, render the actual navigation logic
+  return <RootLayoutNav />;
+};
+
+const RootLayoutNav = () => {
+  const { user } = useAuthStore();
+  const segments = useSegments();
+  const router = useRouter();
+
+  useEffect(() => {
+    const inAuthGroup = segments[0] === '(auth)';
+
+    if (user && inAuthGroup) {
+      router.replace('/(tabs)');
+    } else if (!user && !inAuthGroup) {
+      router.replace('/(auth)/login');
+    }
+    
+    SplashScreen.hideAsync();
+  }, [user, segments, router]);
+
+  return <Slot />;
+};
 
 export default function RootLayout() {
-  useEffect(() => {
-    SplashScreen.hideAsync();
-  }, []);
-
   return (
-    <QueryClientProvider client={queryClient}>
-      <LanguageContext>
-        <AuthContext>
-          <AgentContext>
-            <ChatContext>
-              <GestureHandlerRootView style={{ flex: 1 }}>
-                <RootLayoutNav />
-              </GestureHandlerRootView>
-            </ChatContext>
-          </AgentContext>
-        </AuthContext>
-      </LanguageContext>
-    </QueryClientProvider>
+    // LanguageContext MUST wrap everything
+    <LanguageContext>
+      <QueryClientProvider client={queryClient}>
+        <GestureHandlerRootView style={{ flex: 1 }}>
+          <AppInitializer />
+        </GestureHandlerRootView>
+      </QueryClientProvider>
+    </LanguageContext>
   );
 }
-

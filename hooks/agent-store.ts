@@ -1,855 +1,476 @@
-import createContextHook from '@nkzw/create-context-hook';
-import { useState } from 'react';
-import { AgentType, Agent, TaskResult, WebSearchResult, ImageGenerationRequest, AnalysisRequest, LiveSearchResult, FileAnalysisRequest, CodeExecutionRequest } from '@/types/chat';
-import { AGENTS } from '@/constants/agents';
+// hooks/agent-store.ts - النسخة النهائية المحسنة
 
-export const [AgentContext, useAgent] = createContextHook(() => {
-  const [activeAgents, setActiveAgents] = useState<AgentType[]>(['general']);
-  const [isProcessing, setIsProcessing] = useState<boolean>(false);
-  const [currentTask, setCurrentTask] = useState<string | null>(null);
+import { create } from 'zustand';
+import { devtools } from 'zustand/middleware';
 
-  const activateAgent = (agentType: AgentType) => {
-    if (!activeAgents.includes(agentType)) {
-      setActiveAgents(prev => [...prev, agentType]);
-    }
-  };
+// --- التكوين والثوابت ---
+const API_CONFIG = {
+  LLM_ENDPOINT: 'https://toolkit.rork.com/text/llm/',
+  SEARCH_ENDPOINT: 'https://google.serper.dev/search',
+  API_KEY: process.env.NEXT_PUBLIC_SERPER_API_KEY || 'c6a7cc38f076762ede0c3a95a134e528ba14ea0e', // سيتم نقلها لمتغيرات البيئة لاحقاً
+  REQUEST_TIMEOUT: 30000, // 30 ثانية
+  MIN_SEARCH_INTERVAL: 1000, // ثانية واحدة بين البحثات
+  MAX_RETRIES: 3,
+  RETRY_DELAY: 1000,
+};
 
-  const deactivateAgent = (agentType: AgentType) => {
-    if (agentType !== 'general') { // General agent always active
-      setActiveAgents(prev => prev.filter(type => type !== agentType));
-    }
-  };
+// --- أنواع البيانات ---
+type Tool = 'web_search' | 'data_analysis' | 'content_writer' | 'general';
 
-  const getActiveAgents = (): Agent[] => {
-    return activeAgents.map(type => AGENTS[type]).filter(Boolean);
-  };
+interface ExecutionLog {
+  step: number;
+  tool: Tool;
+  task: string;
+  output: string;
+  timestamp: number;
+  duration: number;
+  success: boolean;
+}
 
-  const getAllAgents = (): Agent[] => {
-    return Object.values(AGENTS);
-  };
+interface AgentState {
+  // حالة المعالجة
+  isProcessing: boolean;
+  currentTask: string | null;
+  progress: number;
+  
+  // البيانات
+  executionLog: ExecutionLog[];
+  lastError: string | null;
+  
+  // الوظائف
+  processGoal: (goal: string) => Promise<string>;
+  clearLog: () => void;
+  resetState: () => void;
+}
 
-  const selectBestAgent = async (query: string, contextMessages?: any[]): Promise<AgentType> => {
-    const lowerQuery = query.toLowerCase();
-    
-    // Live search keywords (high priority for real-time info)
-    if (lowerQuery.includes('سعر') || lowerQuery.includes('price') || 
-        lowerQuery.includes('current') || lowerQuery.includes('الحالي') ||
-        lowerQuery.includes('آخر سعر') || lowerQuery.includes('stock') ||
-        lowerQuery.includes('أسهم') || lowerQuery.includes('live') ||
-        lowerQuery.includes('مباشر') || lowerQuery.includes('فوري') ||
-        lowerQuery.includes('حديث') || lowerQuery.includes('الآن') ||
-        lowerQuery.includes('اليوم') || lowerQuery.includes('latest') ||
-        lowerQuery.includes('أخبار') || lowerQuery.includes('news') ||
-        lowerQuery.includes('اخبار') || lowerQuery.includes('معلومات حية') ||
-        lowerQuery.includes('معلومات محدثة') || lowerQuery.includes('آخر الأخبار')) {
-      return 'live_search_agent';
-    }
-    
-    // Code execution keywords (for math and calculations)
-    if (lowerQuery.includes('احسب') || lowerQuery.includes('calculate') || 
-        lowerQuery.includes('ضرب') || lowerQuery.includes('multiply') ||
-        lowerQuery.includes('جمع') || lowerQuery.includes('add') ||
-        lowerQuery.includes('طرح') || lowerQuery.includes('subtract') ||
-        lowerQuery.includes('قسمة') || lowerQuery.includes('divide') ||
-        lowerQuery.includes('رياضيات') || lowerQuery.includes('math') ||
-        lowerQuery.includes('معادلة') || lowerQuery.includes('equation')) {
-      return 'code_executor';
-    }
-    
-    // Web search keywords (general search)
-    if (lowerQuery.includes('ابحث') || lowerQuery.includes('search') || 
-        lowerQuery.includes('معلومات عن') || lowerQuery.includes('أخبار') ||
-        lowerQuery.includes('آخر') || lowerQuery.includes('جديد') ||
-        lowerQuery.includes('ما هو') || lowerQuery.includes('what is') ||
-        lowerQuery.includes('كيف') || lowerQuery.includes('how') ||
-        lowerQuery.includes('لماذا') || lowerQuery.includes('why')) {
-      return 'web_search';
-    }
-    
-    // Image generation keywords
-    if (lowerQuery.includes('ارسم') || lowerQuery.includes('صورة') || 
-        lowerQuery.includes('تصميم') || lowerQuery.includes('generate image') ||
-        lowerQuery.includes('create image') || lowerQuery.includes('أنشئ صورة')) {
-      return 'image_generator';
-    }
-    
-    // Code analysis keywords
-    if (lowerQuery.includes('كود') || lowerQuery.includes('برمجة') || 
-        lowerQuery.includes('code') || lowerQuery.includes('program') ||
-        lowerQuery.includes('function') || lowerQuery.includes('algorithm')) {
-      return 'code_analyst';
-    }
-    
-    // Data analysis keywords
-    if (lowerQuery.includes('بيانات') || lowerQuery.includes('إحصاء') || 
-        lowerQuery.includes('data') || lowerQuery.includes('statistics') ||
-        lowerQuery.includes('chart') || lowerQuery.includes('graph')) {
-      return 'data_scientist';
-    }
-    
-    // Translation keywords
-    if (lowerQuery.includes('ترجم') || lowerQuery.includes('translate') || 
-        lowerQuery.includes('باللغة') || lowerQuery.includes('in english') ||
-        lowerQuery.includes('in arabic')) {
-      return 'translator';
-    }
-    
-    // Creative writing keywords
-    if (lowerQuery.includes('اكتب') || lowerQuery.includes('قصة') || 
-        lowerQuery.includes('شعر') || lowerQuery.includes('write') ||
-        lowerQuery.includes('story') || lowerQuery.includes('poem')) {
-      return 'creative_writer';
-    }
-    
-    // Planning keywords
-    if (lowerQuery.includes('خطة') || lowerQuery.includes('خطط') || 
-        lowerQuery.includes('plan') || lowerQuery.includes('schedule') ||
-        lowerQuery.includes('organize') || lowerQuery.includes('نظم')) {
-      return 'planner';
-    }
-    
-    // Financial keywords
-    if (lowerQuery.includes('مالي') || lowerQuery.includes('استثمار') || 
-        lowerQuery.includes('financial') || lowerQuery.includes('investment') ||
-        lowerQuery.includes('money') || lowerQuery.includes('budget')) {
-      return 'financial_analyst';
-    }
-    
-    // Travel keywords
-    if (lowerQuery.includes('سفر') || lowerQuery.includes('رحلة') || 
-        lowerQuery.includes('travel') || lowerQuery.includes('trip') ||
-        lowerQuery.includes('vacation') || lowerQuery.includes('hotel')) {
-      return 'travel_agent';
-    }
-    
-    // Health keywords
-    if (lowerQuery.includes('صحة') || lowerQuery.includes('طبي') || 
-        lowerQuery.includes('health') || lowerQuery.includes('medical') ||
-        lowerQuery.includes('diet') || lowerQuery.includes('fitness')) {
-      return 'health_advisor';
-    }
-    
-    // Education keywords
-    if (lowerQuery.includes('تعلم') || lowerQuery.includes('شرح') || 
-        lowerQuery.includes('learn') || lowerQuery.includes('explain') ||
-        lowerQuery.includes('teach') || lowerQuery.includes('study')) {
-      return 'education_tutor';
-    }
-    
-    return 'general';
-  };
-
-  const processWithAgent = async (
-    agentType: AgentType, 
-    query: string, 
-    context?: any
-  ): Promise<TaskResult> => {
-    setIsProcessing(true);
-    setCurrentTask('agent.status.analyzingRequest');
+// --- مساعدات للشبكة والأخطاء ---
+class NetworkHelper {
+  static async fetchWithTimeout(url: string, options: RequestInit, timeout: number): Promise<Response> {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), timeout);
     
     try {
-      // Select the best agent for the query
-      const bestAgent = await selectBestAgent(query);
-      const agent = AGENTS[bestAgent] || AGENTS['general'];
-      
-      setCurrentTask(`agent.status.usingAgent,${agent.name}`);
-      
-      // Simulate processing time
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Process based on agent type
-      switch (bestAgent) {
-        case 'web_search':
-          return await performWebSearch(query);
-        case 'live_search_agent':
-          return await performLiveSearch(query);
-        case 'image_generator':
-          return await generateImage({ prompt: query });
-        case 'code_executor':
-          return await executeCode(query, context);
-        case 'code_analyst':
-          return await analyzeCode(query, context);
-        case 'data_scientist':
-          return await analyzeData(query, context);
-        case 'translator':
-          return await translateText(query, context);
-        case 'creative_writer':
-          return await generateCreativeContent(query, context);
-        case 'financial_analyst':
-          return await analyzeFinancial(query, context);
-        case 'travel_agent':
-          return await planTravel(query, context);
-        case 'health_advisor':
-          return await provideHealthAdvice(query, context);
-        case 'education_tutor':
-          return await provideTutoring(query, context);
-        case 'document_analyzer':
-          return await analyzeDocument(query, context);
-        case 'file_analyzer':
-          return await analyzeFile(query, context);
-        default:
-          return await processGeneralQuery(agent, query, context);
-      }
-    } catch (error) {
-      console.error('Agent processing error:', error);
-      const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
-      return {
-        success: false,
-        error: `حدث خطأ أثناء معالجة طلبك: ${errorMessage}`
-      };
-    } finally {
-      setIsProcessing(false);
-      setCurrentTask(null);
-    }
-  };
-
-  const performWebSearch = async (query: string): Promise<TaskResult> => {
-    try {
-      setCurrentTask('agent.status.webSearch');
-      
-      const response = await fetch('https://toolkit.rork.com/text/llm/', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          messages: [
-            {
-              role: 'system',
-              content: 'أنت وكيل بحث متقدم. ابحث عن المعلومات المطلوبة وقدم إجابة شاملة مع ذكر المصادر.'
-            },
-            {
-              role: 'user',
-              content: `ابحث عن معلومات حول: ${query}`
-            }
-          ]
-        })
+      const response = await fetch(url, {
+        ...options,
+        signal: controller.signal,
       });
+      clearTimeout(timeoutId);
+      return response;
+    } catch (error) {
+      clearTimeout(timeoutId);
+      throw error;
+    }
+  }
 
-      if (!response.ok) {
-        const errorBody = await response.text();
-        throw new Error(`فشل طلب البحث في الويب: ${response.status} ${response.statusText} - ${errorBody}`);
+  static async retryOperation<T>(
+    operation: () => Promise<T>,
+    maxRetries: number = API_CONFIG.MAX_RETRIES,
+    delay: number = API_CONFIG.RETRY_DELAY
+  ): Promise<T> {
+    let lastError: Error;
+    
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        return await operation();
+      } catch (error) {
+        lastError = error instanceof Error ? error : new Error('خطأ غير معروف');
+        
+        if (attempt === maxRetries) break;
+        
+        // تأخير متزايد
+        await new Promise(resolve => setTimeout(resolve, delay * Math.pow(2, attempt - 1)));
       }
+    }
+    
+    throw lastError!;
+  }
+}
 
-      const data = await response.json();
-      
-      const searchResults: WebSearchResult[] = [
+// --- خدمة LLM ---
+class LLMService {
+  static async makeRequest(messages: Array<{role: string; content: string}>): Promise<string> {
+    return NetworkHelper.retryOperation(async () => {
+      const response = await NetworkHelper.fetchWithTimeout(
+        API_CONFIG.LLM_ENDPOINT,
         {
-          title: `نتائج البحث: ${query}`,
-          url: 'https://www.google.com/search?q=' + encodeURIComponent(query),
-          snippet: data.completion.substring(0, 200) + '...',
-          timestamp: new Date().toISOString()
-        }
-      ];
-
-      return {
-        success: true,
-        data: {
-          response: data.completion,
-          searchResults: searchResults
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ messages }),
         },
-        metadata: { searchQuery: query, resultCount: searchResults.length }
-      };
-    } catch (error) {
-      console.error('Web search error:', error);
-      return {
-        success: false,
-        error: 'فشل في البحث على الإنترنت. يرجى التحقق من اتصالك بالإنترنت والمحاولة مرة أخرى.'
-      };
-    }
-  };
-
-  const performLiveSearch = async (query: string): Promise<TaskResult> => {
-    try {
-      setCurrentTask('agent.status.liveSearch');
-      
-      const response = await fetch('https://toolkit.rork.com/text/llm/', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          messages: [
-            {
-              role: 'system',
-              content: 'أنت وكيل بحث مباشر مع وصول للمعلومات الحية. قدم أحدث المعلومات المتاحة.'
-            },
-            {
-              role: 'user',
-              content: `ابحث عن معلومات حية حول: ${query}`
-            }
-          ]
-        })
-      });
-
-      const data = await response.json();
-      
-      return {
-        success: true,
-        data: { response: data.completion },
-        metadata: { searchQuery: query, searchType: 'live' }
-      };
-    } catch (error) {
-      console.error('Live search error:', error);
-      return {
-        success: false,
-        error: 'فشل في البحث المباشر. يرجى التحقق من اتصالك بالإنترنت والمحاولة مرة أخرى.'
-      };
-    }
-  };
-
-  const generateImage = async (request: ImageGenerationRequest): Promise<TaskResult> => {
-    try {
-      setCurrentTask('agent.status.generatingImage');
-      
-      const response = await fetch('https://toolkit.rork.com/images/generate/', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          prompt: request.prompt,
-          size: request.size || '1024x1024'
-        })
-      });
+        API_CONFIG.REQUEST_TIMEOUT
+      );
 
       if (!response.ok) {
-        const errorBody = await response.text();
-        throw new Error(`فشل طلب إنشاء الصورة: ${response.status} ${response.statusText} - ${errorBody}`);
+        const errorText = await response.text();
+        throw new Error(`HTTP ${response.status}: ${errorText}`);
       }
 
       const data = await response.json();
-      
-      if (data.image && data.image.base64Data) {
-        return {
-          success: true,
-          data: {
-            response: 'تم إنشاء الصورة بنجاح!',
-            imageUrl: `data:image/png;base64,${data.image.base64Data}`,
-            prompt: request.prompt
+      return data.completion || 'لم يتم الحصول على رد';
+    });
+  }
+}
+
+// --- خدمة البحث ---
+class SearchService {
+  private static lastSearchTime = 0;
+
+  static async search(query: string): Promise<string> {
+    // Rate limiting
+    const now = Date.now();
+    const timeSinceLastSearch = now - this.lastSearchTime;
+    if (timeSinceLastSearch < API_CONFIG.MIN_SEARCH_INTERVAL) {
+      await new Promise(resolve => 
+        setTimeout(resolve, API_CONFIG.MIN_SEARCH_INTERVAL - timeSinceLastSearch)
+      );
+    }
+
+    this.lastSearchTime = Date.now();
+
+    return NetworkHelper.retryOperation(async () => {
+      if (!API_CONFIG.API_KEY || API_CONFIG.API_KEY.includes('your-api-key')) {
+        throw new Error('مفتاح API للبحث غير مُعرّف');
+      }
+
+      const response = await NetworkHelper.fetchWithTimeout(
+        API_CONFIG.SEARCH_ENDPOINT,
+        {
+          method: 'POST',
+          headers: { 
+            'X-API-KEY': API_CONFIG.API_KEY,
+            'Content-Type': 'application/json' 
           },
-          metadata: { prompt: request.prompt, size: request.size }
-        };
-      } else {
-        throw new Error('لم يتم استلام بيانات الصورة.');
-      }
-    } catch (error) {
-      console.error('Image generation error:', error);
-      return {
-        success: false,
-        error: 'فشل في إنشاء الصورة. يرجى المحاولة مرة أخرى.'
-      };
-    }
-  };
-
-  const executeCode = async (query: string, context?: any): Promise<TaskResult> => {
-    try {
-      setCurrentTask('agent.status.executingCode');
-      
-      const response = await fetch('https://toolkit.rork.com/text/llm/', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          messages: [
-            {
-              role: 'system',
-              content: 'أنت منفذ أكواد متقدم. قم بحل المسائل الرياضية والحسابية وتنفيذ العمليات المطلوبة.'
-            },
-            {
-              role: 'user',
-              content: query
-            }
-          ]
-        })
-      });
+          body: JSON.stringify({ 
+            q: query,
+            num: 5,
+            gl: 'sa',
+            hl: 'ar'
+          }),
+        },
+        API_CONFIG.REQUEST_TIMEOUT
+      );
 
       if (!response.ok) {
-        const errorBody = await response.text();
-        throw new Error(`فشل طلب تنفيذ الكود: ${response.status} ${response.statusText} - ${errorBody}`);
+        throw new Error(`فشل البحث: HTTP ${response.status}`);
       }
 
       const data = await response.json();
       
-      return {
-        success: true,
-        data: { response: data.completion },
-        metadata: { executionType: 'calculation' }
-      };
-    } catch (error) {
-      console.error('Code execution error:', error);
-      return {
-        success: false,
-        error: 'فشل في تنفيذ العملية الحسابية. يرجى المحاولة مرة أخرى.'
-      };
-    }
-  };
-
-  const analyzeCode = async (query: string, context?: any): Promise<TaskResult> => {
-    try {
-      setCurrentTask('agent.status.analyzingCode');
-      
-      const response = await fetch('https://toolkit.rork.com/text/llm/', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          messages: [
-            {
-              role: 'system',
-              content: 'أنت خبير في تحليل الأكواد البرمجية. قم بتحليل الكود وشرحه وتقديم التحسينات.'
-            },
-            {
-              role: 'user',
-              content: query
-            }
-          ]
-        })
-      });
-
-      if (!response.ok) {
-        const errorBody = await response.text();
-        throw new Error(`فشل طلب تحليل الكود: ${response.status} ${response.statusText} - ${errorBody}`);
+      if (!data.organic || data.organic.length === 0) {
+        return `لم يتم العثور على نتائج مناسبة للبحث: "${query}"`;
       }
 
-      const data = await response.json();
+      const results = data.organic
+        .slice(0, 3) // أفضل 3 نتائج فقط
+        .map((item: any) => 
+          `🔍 ${item.title}\n🔗 ${item.link}\n📝 ${item.snippet}`
+        )
+        .join('\n\n─────────────\n\n');
       
-      return {
-        success: true,
-        data: { response: data.completion },
-        metadata: { analysisType: 'code' }
-      };
-    } catch (error) {
-      console.error('Code analysis error:', error);
-      return {
-        success: false,
-        error: 'فشل في تحليل الكود. يرجى المحاولة مرة أخرى.'
-      };
+      return `نتائج البحث عن "${query}":\n\n${results}`;
+    });
+  }
+}
+
+// --- مدير المهام ---
+class TaskManager {
+  static validateGoal(goal: string): void {
+    if (!goal || typeof goal !== 'string') {
+      throw new Error('الهدف مطلوب');
     }
-  };
+    
+    const trimmedGoal = goal.trim();
+    if (trimmedGoal.length < 5) {
+      throw new Error('الهدف قصير جداً. يرجى كتابة هدف أكثر تفصيلاً');
+    }
+    
+    if (trimmedGoal.length > 500) {
+      throw new Error('الهدف طويل جداً. يرجى التلخيص');
+    }
+  }
 
-  const analyzeData = async (query: string, context?: any): Promise<TaskResult> => {
+  static async createPlan(goal: string): Promise<string[]> {
+    this.validateGoal(goal);
+
+    const prompt = `أنت خبير في تخطيط المهام. قسم الهدف التالي إلى خطوات واضحة ومتسلسلة.
+
+استخدم الأدوات التالية:
+- [web_search] للبحث عن معلومات حديثة
+- [data_analysis] لتحليل المعلومات والبيانات  
+- [content_writer] لكتابة التقارير والملخصات
+
+الهدف: "${goal}"
+
+اكتب 3-5 خطوات محددة وواضحة:`;
+
+    const completion = await LLMService.makeRequest([
+      {
+        role: 'system',
+        content: 'أنت مخطط خبير. اكتب خطة واضحة ومحددة.'
+      },
+      {
+        role: 'user',
+        content: prompt
+      }
+    ]);
+
+    // استخراج الخطوات
+    const lines = completion.split('\n').map(line => line.trim());
+    const steps = lines.filter(line => line.includes('[') && line.includes(']'));
+    
+    if (steps.length === 0) {
+      throw new Error('لم يتم إنشاء خطة صالحة. يرجى إعادة صياغة الهدف بشكل أوضح');
+    }
+
+    if (steps.length > 7) {
+      throw new Error('الخطة معقدة جداً. يرجى تبسيط الهدف');
+    }
+
+    return steps.slice(0, 5); // حد أقصى 5 خطوات
+  }
+
+  static async executeTask(
+    task: string, 
+    tool: Tool, 
+    goal: string, 
+    previousResults: string[]
+  ): Promise<string> {
+    const startTime = Date.now();
+
     try {
-      setCurrentTask('agent.status.analyzingData');
-      
-      const response = await fetch('https://toolkit.rork.com/text/llm/', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          messages: [
-            {
-              role: 'system',
-              content: 'أنت عالم بيانات خبير. قم بتحليل البيانات وتقديم الرؤى والتفسيرات.'
-            },
-            {
-              role: 'user',
-              content: query
-            }
-          ]
-        })
-      });
-
-      if (!response.ok) {
-        const errorBody = await response.text();
-        throw new Error(`فشل طلب تحليل البيانات: ${response.status} ${response.statusText} - ${errorBody}`);
+      if (tool === 'web_search') {
+        return await SearchService.search(task);
       }
 
-      const data = await response.json();
-      
-      return {
-        success: true,
-        data: { response: data.completion },
-        metadata: { analysisType: 'data' }
+      // المهام الأخرى
+      const context = previousResults.length > 0 ? 
+        `السياق من الخطوات السابقة:\n${previousResults.join('\n\n')}` : 
+        'هذه هي الخطوة الأولى.';
+
+      const systemPrompts = {
+        data_analysis: 'أنت محلل بيانات خبير. حلل المعلومات واستخرج النقاط المهمة بوضوح.',
+        content_writer: 'أنت كاتب محترف. اكتب محتوى مفيد وواضح وجذاب.',
+        general: 'أنت مساعد ذكي. قدم إجابة مفيدة ودقيقة.'
       };
+
+      const prompt = `الهدف الأصلي: "${goal}"
+
+${context}
+
+مهمتك: "${task}"
+
+قم بتنفيذ هذه المهمة بدقة ووضوح:`;
+
+      return await LLMService.makeRequest([
+        {
+          role: 'system',
+          content: systemPrompts[tool] || systemPrompts.general
+        },
+        {
+          role: 'user',
+          content: prompt
+        }
+      ]);
+
     } catch (error) {
-      console.error('Data analysis error:', error);
-      return {
-        success: false,
-        error: 'فشل في تحليل البيانات. يرجى المحاولة مرة أخرى.'
-      };
+      const errorMsg = error instanceof Error ? error.message : 'خطأ غير معروف';
+      throw new Error(`فشل في تنفيذ "${task}": ${errorMsg}`);
     }
-  };
+  }
 
-  const translateText = async (query: string, context?: any): Promise<TaskResult> => {
-    try {
-      setCurrentTask('agent.status.translating');
-      
-      const response = await fetch('https://toolkit.rork.com/text/llm/', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          messages: [
-            {
-              role: 'system',
-              content: 'أنت مترجم محترف. قم بالترجمة الدقيقة مع الحفاظ على المعنى والسياق.'
-            },
-            {
-              role: 'user',
-              content: query
-            }
-          ]
-        })
-      });
+  static async generateFinalSummary(goal: string, executionLog: ExecutionLog[]): Promise<string> {
+    const logSummary = executionLog
+      .filter(log => log.success)
+      .map(log => `✅ ${log.task}\n📋 النتيجة: ${log.output.substring(0, 200)}...`)
+      .join('\n\n');
 
-      if (!response.ok) {
-        const errorBody = await response.text();
-        throw new Error(`فشل طلب الترجمة: ${response.status} ${response.statusText} - ${errorBody}`);
+    const prompt = `بناءً على الهدف والنتائج، اكتب ملخصاً نهائياً شاملاً ومفيداً.
+
+الهدف: "${goal}"
+
+النتائج المحققة:
+${logSummary}
+
+اكتب ملخصاً نهائياً باللغة العربية يجيب على الهدف الأصلي:`;
+
+    return await LLMService.makeRequest([
+      {
+        role: 'system',
+        content: 'أنت كاتب محترف متخصص في كتابة الملخصات الشاملة والمفيدة.'
+      },
+      {
+        role: 'user',
+        content: prompt
       }
+    ]);
+  }
+}
 
-      const data = await response.json();
-      
-      return {
-        success: true,
-        data: { response: data.completion },
-        metadata: { serviceType: 'translation' }
-      };
-    } catch (error) {
-      console.error('Translation error:', error);
-      return {
-        success: false,
-        error: 'فشل في الترجمة. يرجى المحاولة مرة أخرى.'
-      };
-    }
-  };
+// --- Store الرئيسي ---
+export const useAgentStore = create<AgentState>()(
+  devtools(
+    (set, get) => ({
+      // الحالة الأولية
+      isProcessing: false,
+      currentTask: null,
+      progress: 0,
+      executionLog: [],
+      lastError: null,
 
-  const generateCreativeContent = async (query: string, context?: any): Promise<TaskResult> => {
-    try {
-      setCurrentTask('agent.status.writing');
-      
-      const response = await fetch('https://toolkit.rork.com/text/llm/', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          messages: [
-            {
-              role: 'system',
-              content: 'أنت كاتب مبدع موهوب. اكتب محتوى إبداعي جميل ومؤثر.'
-            },
-            {
-              role: 'user',
-              content: query
+      // مسح البيانات
+      clearLog: () => {
+        set({ executionLog: [], progress: 0, lastError: null });
+      },
+
+      // إعادة تعيين الحالة
+      resetState: () => {
+        set({
+          isProcessing: false,
+          currentTask: null,
+          progress: 0,
+          executionLog: [],
+          lastError: null,
+        });
+      },
+
+      // المعالج الرئيسي
+      processGoal: async (goal: string): Promise<string> => {
+        const state = get();
+        
+        // منع المعالجة المتوازية
+        if (state.isProcessing) {
+          throw new Error('يوجد مهمة أخرى قيد المعالجة. يرجى الانتظار');
+        }
+
+        // إعادة تعيين الحالة
+        set({
+          isProcessing: true,
+          currentTask: '🎯 جاري تحليل الهدف...',
+          progress: 5,
+          executionLog: [],
+          lastError: null,
+        });
+
+        try {
+          // 1. إنشاء الخطة
+          const plan = await TaskManager.createPlan(goal);
+          set({ 
+            currentTask: `📋 تم إنشاء خطة من ${plan.length} خطوات`,
+            progress: 15 
+          });
+
+          const results: string[] = [];
+
+          // 2. تنفيذ الخطوات
+          for (let i = 0; i < plan.length; i++) {
+            const stepText = plan[i];
+            const toolMatch = stepText.match(/\[(.*?)\]/);
+            const tool: Tool = (toolMatch?.[1] as Tool) || 'general';
+            const task = stepText.replace(/\[.*?\]\s*/, '').trim();
+
+            const stepProgress = 15 + Math.round(((i + 1) / plan.length) * 60); // 15-75%
+            set({ 
+              currentTask: `⏳ الخطوة ${i + 1}/${plan.length}: ${task}`,
+              progress: stepProgress
+            });
+
+            const startTime = Date.now();
+            let success = true;
+            let output = '';
+
+            try {
+              output = await TaskManager.executeTask(task, tool, goal, results);
+              results.push(output);
+            } catch (error) {
+              success = false;
+              output = `خطأ: ${error instanceof Error ? error.message : 'فشل في التنفيذ'}`;
+              console.error(`فشل في الخطوة ${i + 1}:`, error);
             }
-          ]
-        })
-      });
 
-      if (!response.ok) {
-        const errorBody = await response.text();
-        throw new Error(`فشل طلب الكتابة الإبداعية: ${response.status} ${response.statusText} - ${errorBody}`);
-      }
+            const duration = Date.now() - startTime;
 
-      const data = await response.json();
-      
-      return {
-        success: true,
-        data: { response: data.completion },
-        metadata: { contentType: 'creative' }
-      };
-    } catch (error) {
-      console.error('Creative writing error:', error);
-      return {
-        success: false,
-        error: 'فشل في الكتابة الإبداعية. يرجى المحاولة مرة أخرى.'
-      };
-    }
-  };
+            // تحديث السجل
+            set(state => ({
+              executionLog: [...state.executionLog, {
+                step: i + 1,
+                tool,
+                task,
+                output,
+                timestamp: Date.now(),
+                duration,
+                success
+              }]
+            }));
 
-  const analyzeFinancial = async (query: string, context?: any): Promise<TaskResult> => {
-    try {
-      setCurrentTask('agent.status.analyzingFinancial');
-      
-      const response = await fetch('https://toolkit.rork.com/text/llm/', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          messages: [
-            {
-              role: 'system',
-              content: 'أنت محلل مالي خبير. قدم تحليلات مالية دقيقة ونصائح استثمارية.'
-            },
-            {
-              role: 'user',
-              content: query
+            // استراحة قصيرة
+            if (i < plan.length - 1) {
+              await new Promise(resolve => setTimeout(resolve, 800));
             }
-          ]
-        })
-      });
+          }
 
-      if (!response.ok) {
-        const errorBody = await response.text();
-        throw new Error(`فشل طلب التحليل المالي: ${response.status} ${response.statusText} - ${errorBody}`);
-      }
+          // 3. الملخص النهائي
+          set({ 
+            currentTask: '📝 جاري كتابة التقرير النهائي...',
+            progress: 85 
+          });
 
-      const data = await response.json();
-      
-      return {
-        success: true,
-        data: { response: data.completion },
-        metadata: { analysisType: 'financial' }
-      };
-    } catch (error) {
-      console.error('Financial analysis error:', error);
-      return {
-        success: false,
-        error: 'فشل في التحليل المالي. يرجى المحاولة مرة أخرى.'
-      };
+          const finalSummary = await TaskManager.generateFinalSummary(goal, get().executionLog);
+
+          set({ 
+            isProcessing: false,
+            currentTask: null,
+            progress: 100
+          });
+
+          return finalSummary;
+
+        } catch (error) {
+          const errorMessage = error instanceof Error ? error.message : 'خطأ غير متوقع';
+          
+          set({
+            isProcessing: false,
+            currentTask: null,
+            progress: 0,
+            lastError: errorMessage,
+          });
+
+          return `❌ عذراً، واجهت مشكلة: ${errorMessage}\n\nيرجى المحاولة مرة أخرى مع صياغة أوضح للهدف.`;
+        }
+      },
+    }),
+    {
+      name: 'agent-store', // للـ Redux DevTools
     }
-  };
+  )
+);
 
-  const planTravel = async (query: string, context?: any): Promise<TaskResult> => {
-    try {
-      setCurrentTask('agent.status.planningTravel');
-      
-      const response = await fetch('https://toolkit.rork.com/text/llm/', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          messages: [
-            {
-              role: 'system',
-              content: 'أنت وكيل سفر محترف. ساعد في تخطيط الرحلات وقدم نصائح سياحية.'
-            },
-            {
-              role: 'user',
-              content: query
-            }
-          ]
-        })
-      });
+// --- Selectors مفيدة ---
+export const useAgentProgress = () => useAgentStore(state => state.progress);
+export const useAgentLogs = () => useAgentStore(state => state.executionLog);
+export const useIsAgentProcessing = () => useAgentStore(state => state.isProcessing);
+export const useAgentCurrentTask = () => useAgentStore(state => state.currentTask);
+export const useAgentError = () => useAgentStore(state => state.lastError);
 
-      if (!response.ok) {
-        const errorBody = await response.text();
-        throw new Error(`فشل طلب تخطيط الرحلة: ${response.status} ${response.statusText} - ${errorBody}`);
-      }
-
-      const data = await response.json();
-      
-      return {
-        success: true,
-        data: { response: data.completion },
-        metadata: { serviceType: 'travel_planning' }
-      };
-    } catch (error) {
-      console.error('Travel planning error:', error);
-      return {
-        success: false,
-        error: 'فشل في تخطيط الرحلة. يرجى المحاولة مرة أخرى.'
-      };
-    }
-  };
-
-  const provideHealthAdvice = async (query: string, context?: any): Promise<TaskResult> => {
-    try {
-      setCurrentTask('agent.status.providingHealthAdvice');
-      
-      const response = await fetch('https://toolkit.rork.com/text/llm/', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          messages: [
-            {
-              role: 'system',
-              content: 'أنت مستشار صحي. قدم معلومات صحية عامة مع التأكيد على ضرورة استشارة الطبيب.'
-            },
-            {
-              role: 'user',
-              content: query
-            }
-          ]
-        })
-      });
-
-      if (!response.ok) {
-        const errorBody = await response.text();
-        throw new Error(`فشل طلب الاستشارة الصحية: ${response.status} ${response.statusText} - ${errorBody}`);
-      }
-
-      const data = await response.json();
-      
-      return {
-        success: true,
-        data: { response: data.completion },
-        metadata: { serviceType: 'health_advice' }
-      };
-    } catch (error) {
-      console.error('Health advice error:', error);
-      return {
-        success: false,
-        error: 'فشل في تقديم الاستشارة الصحية. يرجى المحاولة مرة أخرى.'
-      };
-    }
-  };
-
-  const provideTutoring = async (query: string, context?: any): Promise<TaskResult> => {
-    try {
-      setCurrentTask('agent.status.providingTutoring');
-      
-      const response = await fetch('https://toolkit.rork.com/text/llm/', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          messages: [
-            {
-              role: 'system',
-              content: 'أنت معلم خبير. اشرح المفاهيم بطريقة واضحة ومبسطة.'
-            },
-            {
-              role: 'user',
-              content: query
-            }
-          ]
-        })
-      });
-
-      if (!response.ok) {
-        const errorBody = await response.text();
-        throw new Error(`فشل طلب التدريس: ${response.status} ${response.statusText} - ${errorBody}`);
-      }
-
-      const data = await response.json();
-      
-      return {
-        success: true,
-        data: { response: data.completion },
-        metadata: { serviceType: 'tutoring' }
-      };
-    } catch (error) {
-      console.error('Tutoring error:', error);
-      return {
-        success: false,
-        error: 'فشل في التدريس. يرجى المحاولة مرة أخرى.'
-      };
-    }
-  };
-
-  const analyzeDocument = async (query: string, context?: any): Promise<TaskResult> => {
-    try {
-      setCurrentTask('agent.status.analyzingDocument');
-      
-      const response = await fetch('https://toolkit.rork.com/text/llm/', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          messages: [
-            {
-              role: 'system',
-              content: 'أنت خبير في تحليل المستندات. اقرأ وحلل المحتوى واستخرج المعلومات المهمة.'
-            },
-            {
-              role: 'user',
-              content: query
-            }
-          ]
-        })
-      });
-
-      if (!response.ok) {
-        const errorBody = await response.text();
-        throw new Error(`فشل طلب تحليل المستند: ${response.status} ${response.statusText} - ${errorBody}`);
-      }
-
-      const data = await response.json();
-      
-      return {
-        success: true,
-        data: { response: data.completion },
-        metadata: { analysisType: 'document' }
-      };
-    } catch (error) {
-      console.error('Document analysis error:', error);
-      return {
-        success: false,
-        error: 'فشل في تحليل المستند. يرجى المحاولة مرة أخرى.'
-      };
-    }
-  };
-
-  const analyzeFile = async (query: string, context?: any): Promise<TaskResult> => {
-    try {
-      setCurrentTask('agent.status.analyzingFile');
-      
-      const response = await fetch('https://toolkit.rork.com/text/llm/', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          messages: [
-            {
-              role: 'system',
-              content: 'أنت خبير في تحليل الملفات. حلل محتوى الملف واستخرج المعلومات المفيدة.'
-            },
-            {
-              role: 'user',
-              content: query
-            }
-          ]
-        })
-      });
-
-      if (!response.ok) {
-        const errorBody = await response.text();
-        throw new Error(`فشل طلب تحليل الملف: ${response.status} ${response.statusText} - ${errorBody}`);
-      }
-
-      const data = await response.json();
-      
-      return {
-        success: true,
-        data: { response: data.completion },
-        metadata: { analysisType: 'file' }
-      };
-    } catch (error) {
-      console.error('File analysis error:', error);
-      return {
-        success: false,
-        error: 'فشل في تحليل الملف. يرجى المحاولة مرة أخرى.'
-      };
-    }
-  };
-
-  const processGeneralQuery = async (agent: Agent, query: string, context?: any): Promise<TaskResult> => {
-    try {
-      setCurrentTask('agent.status.processingRequest');
-      
-      const response = await fetch('https://toolkit.rork.com/text/llm/', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          messages: [
-            {
-              role: 'system',
-              content: agent.systemPrompt
-            },
-            {
-              role: 'user',
-              content: query
-            }
-          ]
-        })
-      });
-
-      if (!response.ok) {
-        const errorBody = await response.text();
-        throw new Error(`فشل طلب المعالجة العامة: ${response.status} ${response.statusText} - ${errorBody}`);
-      }
-
-      const data = await response.json();
-      
-      return {
-        success: true,
-        data: { response: data.completion },
-        metadata: { agentType: agent.type }
-      };
-    } catch (error) {
-      console.error('General query error:', error);
-      return {
-        success: false,
-        error: 'فشل في معالجة الطلب. يرجى المحاولة مرة أخرى.'
-      };
-    }
-  };
-
+// --- Hook مدمج للاستخدام السهل ---
+export const useAgent = () => {
+  const store = useAgentStore();
+  
   return {
-    activeAgents,
-    isProcessing,
-    currentTask,
-    activateAgent,
-    deactivateAgent,
-    getActiveAgents,
-    getAllAgents,
-    selectBestAgent,
-    processWithAgent,
+    // الحالة
+    isProcessing: store.isProcessing,
+    currentTask: store.currentTask,
+    progress: store.progress,
+    logs: store.executionLog,
+    error: store.lastError,
+    
+    // الوظائف
+    processGoal: store.processGoal,
+    clearLog: store.clearLog,
+    resetState: store.resetState,
+    
+    // حالات مشتقة
+    hasLogs: store.executionLog.length > 0,
+    successfulSteps: store.executionLog.filter(log => log.success).length,
+    failedSteps: store.executionLog.filter(log => !log.success).length,
   };
-});
-
+};
