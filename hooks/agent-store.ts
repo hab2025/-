@@ -421,59 +421,24 @@ export const useAgentStore = create<AgentState>()(
               console.error(`فشل في الخطوة ${i + 1}:`, error);
             }
 
-            const duration = Date.now() - startTime;
+      if (!response.ok) {
+        const errorBody = await response.text();
+        throw new Error(`فشل طلب المعالجة العامة: ${response.status} ${response.statusText} - ${errorBody}`);
+      }
 
-            // تحديث السجل
-            set(state => ({
-              executionLog: [...state.executionLog, {
-                step: i + 1,
-                tool,
-                task,
-                output,
-                timestamp: Date.now(),
-                duration,
-                success
-              }]
-            }));
-
-            // استراحة قصيرة
-            if (i < plan.length - 1) {
-              await new Promise(resolve => setTimeout(resolve, 800));
-            }
-          }
-
-          // 3. الملخص النهائي
-          set({ 
-            currentTask: '📝 جاري كتابة التقرير النهائي...',
-            progress: 85 
-          });
-
-          const finalSummary = await TaskManager.generateFinalSummary(goal, get().executionLog);
-
-          set({ 
-            isProcessing: false,
-            currentTask: null,
-            progress: 100
-          });
-
-          return finalSummary;
-
-        } catch (error) {
-          const errorMessage = error instanceof Error ? error.message : 'خطأ غير متوقع';
-          
-          set({
-            isProcessing: false,
-            currentTask: null,
-            progress: 0,
-            lastError: errorMessage,
-          });
-
-          return `❌ عذراً، واجهت مشكلة: ${errorMessage}\n\nيرجى المحاولة مرة أخرى مع صياغة أوضح للهدف.`;
-        }
-      },
-    }),
-    {
-      name: 'agent-store', // للـ Redux DevTools
+      const data = await response.json();
+      
+      return {
+        success: true,
+        data: { response: a.completion },
+        metadata: { agentType: agent.type }
+      };
+    } catch (error) {
+      console.error('General query error:', error);
+      return {
+        success: false,
+        error: 'فشل في معالجة الطلب. يرجى المحاولة مرة أخرى.'
+      };
     }
   )
 );
@@ -507,4 +472,4 @@ export const useAgent = () => {
     successfulSteps: store.executionLog.filter(log => log.success).length,
     failedSteps: store.executionLog.filter(log => !log.success).length,
   };
-};
+});
