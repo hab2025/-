@@ -1,61 +1,52 @@
+// hooks/auth-store.ts
+
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import createContextHook from '@nkzw/create-context-hook';
-import { useState, useEffect } from 'react';
-import { User, AuthState } from '@/types/auth';
+import { create } from 'zustand';
+import { persist, createJSONStorage } from 'zustand/middleware';
+import { User } from '@/types/auth';
 
-export const [AuthContext, useAuth] = createContextHook(() => {
-  const [state, setState] = useState<AuthState>({
-    user: null,
-    isAuthenticated: false,
-    isLoading: true,
-  });
+interface AuthState {
+  user: User | null;
+  initialized: boolean; // To check if we have loaded the user from storage
+  login: (username: string, password: string) => Promise<boolean>;
+  logout: () => void;
+  _setInitialized: (value: boolean) => void;
+}
 
-  useEffect(() => {
-    loadUser();
-  }, []);
+export const useAuthStore = create<AuthState>()(
+  persist(
+    (set, get) => ({
+      user: null,
+      initialized: false,
 
-  const loadUser = async () => {
-    try {
-      const userJson = await AsyncStorage.getItem('user');
-      if (userJson) {
-        const user = JSON.parse(userJson) as User;
-        setState({ user, isAuthenticated: true, isLoading: false });
-      } else {
-        setState({ user: null, isAuthenticated: false, isLoading: false });
-      }
-    } catch (error) {
-      console.error('Failed to load user:', error);
-      setState({ user: null, isAuthenticated: false, isLoading: false });
+      login: async (username, password) => {
+        if (username === 'admin' && password === 'Mo@1234567') {
+          const user: User = { id: '1', username: 'admin', role: 'admin' };
+          set({ user: user });
+          return true;
+        }
+        return false;
+      },
+
+      logout: () => {
+        set({ user: null });
+      },
+
+      _setInitialized: (value: boolean) => {
+        set({ initialized: value });
+      },
+    }),
+    {
+      name: 'auth-storage',
+      storage: createJSONStorage(() => AsyncStorage),
+      // Only persist the 'user' object
+      partialize: (state) => ({ user: state.user }),
+      // This function runs after the state has been loaded from storage
+      onRehydrateStorage: () => (state) => {
+        if (state) {
+          state._setInitialized(true);
+        }
+      },
     }
-  };
-
-  const login = async (username: string, password: string) => {
-    // For testing purposes, hardcoded admin credentials
-    if (username === 'admin' && password === 'Mo@1234567') {
-      const user: User = {
-        id: '1',
-        username: 'admin',
-        role: 'admin',
-      };
-      
-      await AsyncStorage.setItem('user', JSON.stringify(user));
-      setState({ user, isAuthenticated: true, isLoading: false });
-      return true;
-    }
-    return false;
-  };
-
-  const logout = async () => {
-    await AsyncStorage.removeItem('user');
-    setState({ user: null, isAuthenticated: false, isLoading: false });
-  };
-
-  return {
-    user: state.user,
-    isAuthenticated: state.isAuthenticated,
-    isLoading: state.isLoading,
-    login,
-    logout,
-  };
-});
-
+  )
+);
